@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block title %}OS #{{ os_obj.id }} - Kuper Autocenter{% endblock %}
+{% block page_title %}Ordem de Serviço #{{ os_obj.id }}{% endblock %}
+
+{% block content %}
+<!-- BOTÕES DE AÇÃO -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <span class="badge bg-{{ 'success' if os_obj.status == 'Concluído' else 'warning' }} fs-6 me-2">
+            {{ os_obj.status }}
+        </span>
+        <small class="text-muted">
+            <i class="bi bi-calendar"></i> Aberta em {{ os_obj.data_abertura.strftime('%d/%m/%Y %H:%M') }}
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        <!-- 🖨️ BOTÃO IMPRIMIR OS -->
+        <a href="{{ url_for('relatorios.os_pdf_detalhe', id=os_obj.id) }}" class="btn btn-danger" target="_blank">
+            <i class="bi bi-file-pdf"></i> Imprimir OS
+        </a>
+        
+        {% if os_obj.status != 'Concluído' and os_obj.status != 'Cancelado' %}
+        <form method="POST" action="{{ url_for('ordens_servico.concluir', id=os_obj.id) }}" style="display:inline">
+            <button type="submit" class="btn btn-success" onclick="return confirm('Concluir esta OS? Será gerado o lançamento financeiro.')">
+                <i class="bi bi-check-circle"></i> Concluir OS
+            </button>
+        </form>
+        {% endif %}
+        
+        <a href="{{ url_for('ordens_servico.editar', id=os_obj.id) }}" class="btn btn-warning">
+            <i class="bi bi-pencil"></i> Editar
+        </a>
+        <a href="{{ url_for('ordens_servico.lista') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- COLUNA ESQUERDA: Informações e Itens -->
+    <div class="col-md-8">
+        
+        <!-- Informações Gerais -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong><i class="bi bi-info-circle"></i> Informações Gerais</strong>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Veículo:</strong> {{ os_obj.veiculo.placa }} - {{ os_obj.veiculo.marca }} {{ os_obj.veiculo.modelo }} ({{ os_obj.veiculo.ano }})</p>
+                        <p><strong>Cliente:</strong> {{ os_obj.veiculo.cliente.nome }}</p>
+                        <p><strong>Telefone:</strong> {{ os_obj.veiculo.cliente.telefone or '-' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Mecânico:</strong> {{ os_obj.mecanico.nome if os_obj.mecanico else 'Não atribuído' }}</p>
+                        <p><strong>Abertura:</strong> {{ os_obj.data_abertura.strftime('%d/%m/%Y %H:%M') if os_obj.data_abertura else '-' }}</p>
+                        <p><strong>Conclusão:</strong> {{ os_obj.data_conclusao.strftime('%d/%m/%Y %H:%M') if os_obj.data_conclusao else '-' }}</p>
+                    </div>
+                </div>
+                <hr>
+                <p><strong>Defeito Relatado:</strong></p>
+                <p class="bg-light p-2 rounded">{{ os_obj.defeito_relatado or 'Não informado' }}</p>
+                <p><strong>Diagnóstico:</strong></p>
+                <p class="bg-light p-2 rounded">{{ os_obj.diagnostico or 'Não informado' }}</p>
+            </div>
+        </div>
+
+        <!-- Serviços -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-gear"></i> Serviços</strong>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalServico">
+                    <i class="bi bi-plus"></i> Adicionar Serviço
+                </button>
+            </div>
+            <div class="card-body">
+                {% if os_obj.servicos %}
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Serviço</th>
+                            <th>Qtd</th>
+                            <th>Preço Unit.</th>
+                            <th>Subtotal</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in os_obj.servicos %}
+                        <tr>
+                            <td>{{ item.servico.nome }}</td>
+                            <td>{{ item.quantidade }}</td>
+                            <td>R$ {{ "%.2f"|format(item.preco_unitario) }}</td>
+                            <td><strong>R$ {{ "%.2f"|format(item.subtotal or (item.quantidade * item.preco_unitario)) }}</strong></td>
+                            <td>
+                                <form method="POST" action="{{ url_for('ordens_servico.remover_item', id_os=os_obj.id, tipo='servico', id_item=item.id) }}" style="display:inline">
+                                    <button class="btn btn-sm btn-danger" onclick="return confirm('Remover este serviço?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                    <p class="text-muted text-center">Nenhum serviço adicionado.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Peças -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-box-seam"></i> Peças Utilizadas</strong>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalPeca">
+                    <i class="bi bi-plus"></i> Adicionar Peça
+                </button>
+            </div>
+            <div class="card-body">
+                {% if os_obj.pecas %}
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Peça</th>
+                            <th>Código</th>
+                            <th>Qtd</th>
+                            <th>Preço Unit.</th>
+                            <th>Subtotal</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in os_obj.pecas %}
+                        <tr>
+                            <td>{{ item.peca.descricao }}</td>
+                            <td><small>{{ item.peca.codigo or '-' }}</small></td>
+                            <td>{{ item.quantidade }}</td>
+                            <td>R$ {{ "%.2f"|format(item.preco_unitario) }}</td>
+                            <td><strong>R$ {{ "%.2f"|format(item.subtotal or (item.quantidade * item.preco_unitario)) }}</strong></td>
+                            <td>
+                                <form method="POST" action="{{ url_for('ordens_servico.remover_item', id_os=os_obj.id, tipo='peca', id_item=item.id) }}" style="display:inline">
+                                    <button class="btn btn-sm btn-danger" onclick="return confirm('Remover esta peça? O estoque será reposto.')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                    <p class="text-muted text-center">Nenhuma peça adicionada.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- COLUNA DIREITA: Total e Status -->
+    <div class="col-md-4">
+        
+        <!-- Card de Total -->
+        <div class="card bg-primary text-white mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="bi bi-cash-stack"></i> Total da OS</h5>
+                <h2 class="display-4">R$ {{ "%.2f"|format(os_obj.valor_total or 0) }}</h2>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="card mb-4">
+            <div class="card-header"><strong>Status Atual</strong></div>
+            <div class="card-body text-center">
+                {% set cores = {
+                    'Aberto': 'primary',
+                    'Em Andamento': 'warning',
+                    'Aguardando Peças': 'secondary',
+                    'Concluído': 'success',
+                    'Cancelado': 'danger'
+                } %}
+                <span class="badge bg-{{ cores.get(os_obj.status, 'secondary') }} fs-5 p-2">
+                    {{ os_obj.status }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Resumo -->
+        <div class="card">
+            <div class="card-header"><strong>Resumo</strong></div>
+            <div class="card-body">
+                <p><i class="bi bi-gear"></i> Serviços: {{ os_obj.servicos|length }}</p>
+                <p><i class="bi bi-box-seam"></i> Peças: {{ os_obj.pecas|length }}</p>
+                <hr>
+                <p class="text-muted small">
+                    <i class="bi bi-info-circle"></i> 
+                    Ao concluir a OS, será gerado automaticamente um lançamento no módulo Financeiro.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Adicionar Serviço -->
+<div class="modal fade" id="modalServico" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ url_for('ordens_servico.adicionar_servico', id=os_obj.id) }}">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-gear"></i> Adicionar Serviço</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Serviço</label>
+                        <select name="servico_id" class="form-select" required>
+                            <option value="">-- Selecione --</option>
+                            {% for s in servicos %}
+                                <option value="{{ s.id }}">{{ s.nome }} - R$ {{ "%.2f"|format(s.preco_base) }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quantidade</label>
+                        <input type="number" name="quantidade" class="form-control" value="1" min="1" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Adicionar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: Adicionar Peça -->
+<div class="modal fade" id="modalPeca" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ url_for('ordens_servico.adicionar_peca', id=os_obj.id) }}">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-box-seam"></i> Adicionar Peça</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Peça</label>
+                        <select name="peca_id" class="form-select" required>
+                            <option value="">-- Selecione --</option>
+                            {% for p in pecas %}
+                                <option value="{{ p.id }}" {% if p.estoque_atual <= 0 %}disabled{% endif %}>
+                                    {{ p.descricao }} (Estoque: {{ p.estoque_atual }}) - R$ {{ "%.2f"|format(p.preco_venda) }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Peças com estoque zerado não aparecem</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quantidade</label>
+                        <input type="number" name="quantidade" class="form-control" value="1" min="1" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Adicionar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Kuper Autocenter{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-bg: #1e293b;
+            --sidebar-hover: #334155;
+            --accent: #3b82f6;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        .sidebar {
+            position: fixed; top: 0; left: 0; width: 250px; height: 100vh;
+            background: var(--sidebar-bg); color: white; padding-top: 20px;
+            transition: all 0.3s; z-index: 1000;
+        }
+        .sidebar-brand { padding: 0 20px 20px; border-bottom: 1px solid #334155; margin-bottom: 20px; }
+        .sidebar-brand h4 { margin: 0; font-weight: 700; color: #fff; }
+        .sidebar-brand small { color: #94a3b8; font-size: 0.75rem; }
+        
+        .nav-link { color: #cbd5e1; padding: 12px 20px; display: flex; align-items: center; gap: 12px; transition: 0.2s; }
+        .nav-link:hover { background: var(--sidebar-hover); color: #fff; text-decoration: none; }
+        .nav-link.active { background: var(--accent); color: #fff; border-left: 4px solid #60a5fa; }
+        .nav-link i { font-size: 1.2rem; width: 24px; text-align: center; }
+        
+        .nav-section { color: #64748b; font-size: 0.7rem; text-transform: uppercase; padding: 15px 20px 5px; font-weight: 600; letter-spacing: 1px; }
+
+        .main-content { margin-left: 250px; padding: 30px; }
+        
+        .topbar { background: white; padding: 15px 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .user-profile { display: flex; align-items: center; gap: 10px; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .card-header { background: white; border-bottom: 1px solid #f1f5f9; font-weight: 600; padding: 15px 20px; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <h4><i class="bi bi-car-front-fill text-primary"></i> Kuper</h4>
+            <small>Autocenter System</small>
+        </div>
+
+        <div class="nav-section">Principal</div>
+        <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+
+        <div class="nav-section">Cadastros</div>
+        <a href="/clientes" class="nav-link {% if '/clientes' in request.path %}active{% endif %}"><i class="bi bi-people"></i> Clientes</a>
+        <a href="/veiculos" class="nav-link {% if '/veiculos' in request.path %}active{% endif %}"><i class="bi bi-car-front"></i> Veículos</a>
+        <a href="/mecanicos" class="nav-link {% if '/mecanicos' in request.path %}active{% endif %}"><i class="bi bi-tools"></i> Mecânicos</a>
+
+        <div class="nav-section">Operacional</div>
+        <a href="/pecas" class="nav-link {% if '/pecas' in request.path %}active{% endif %}"><i class="bi bi-box-seam"></i> Peças</a>
+        <a href="/servicos" class="nav-link {% if '/servicos' in request.path %}active{% endif %}"><i class="bi bi-gear"></i> Serviços</a>
+        <a href="/ordens-servico" class="nav-link {% if '/ordens' in request.path %}active{% endif %}"><i class="bi bi-clipboard-check"></i> Ordens de Serviço</a>
+
+        <div class="nav-section">Gestão</div>
+        <a href="/financeiro" class="nav-link {% if '/financeiro' in request.path %}active{% endif %}"><i class="bi bi-cash-stack"></i> Financeiro</a>
+        
+        <div class="nav-section">Sistema</div>
+        <!-- BOTÃO DE SAIR ESTÁ AQUI -->
+        <a href="{{ url_for('auth.logout') }}" class="nav-link text-danger" onclick="return confirm('Deseja realmente sair do sistema?');">
+            <i class="bi bi-box-arrow-right"></i> Sair do Sistema
+        </a>
+    </div>
+
+    <!-- CONTEÚDO -->
+    <div class="main-content">
+        <div class="topbar">
+            <div>
+                <h5 class="mb-0 fw-bold">{% block page_title %}Dashboard{% endblock %}</h5>
+                <small class="text-muted">Bem-vindo ao sistema</small>
+            </div>
+            <div class="user-profile">
+                <div class="text-end">
+                    <div class="fw-semibold">{{ session.get('usuario_nome', 'Administrador') }}</div>
+                    <small class="text-muted">{{ session.get('usuario_perfil', 'Admin') }}</small>
+                </div>
+                <div class="avatar"><i class="bi bi-person-fill"></i></div>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

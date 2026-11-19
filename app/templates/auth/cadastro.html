@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - Kuper Autocenter</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 20px;
+        }
+        .login-container {
+            display: flex;
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .login-image {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(30, 58, 138, 0.9)),
+                        url('https://images.unsplash.com/photo-1486262715619-67b85e0b081d?w=800&q=80');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            color: white;
+            text-align: center;
+        }
+        .login-image i { font-size: 4rem; margin-bottom: 15px; opacity: 0.9; }
+        .login-image h2 { font-size: 2rem; font-weight: 700; margin-bottom: 10px; }
+        
+        .login-form {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .login-header { text-align: center; margin-bottom: 25px; }
+        .login-header h3 { color: #1e293b; font-weight: 700; }
+        .form-label { font-weight: 600; color: #334155; font-size: 0.9rem; }
+        .form-control, .form-select {
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .btn-cadastro {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white; border: none; padding: 12px;
+            border-radius: 10px; font-weight: 600; width: 100%;
+            transition: all 0.3s; margin-top: 10px;
+        }
+        .btn-cadastro:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); color: white; }
+        
+        @media (max-width: 768px) {
+            .login-image { display: none; }
+            .login-form { padding: 30px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-image">
+            <i class="bi bi-person-plus-fill"></i>
+            <h2>Junte-se à Equipe</h2>
+            <p>Crie sua conta para acessar o Kuper Autocenter</p>
+        </div>
+        
+        <div class="login-form">
+            <div class="login-header">
+                <h3>Criar Nova Conta</h3>
+                <p class="text-muted">Preencha os dados abaixo</p>
+            </div>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} py-2 text-center">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-person-fill me-2"></i>Nome Completo</label>
+                    <input type="text" name="nome" class="form-control" placeholder="Seu nome" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-envelope-fill me-2"></i>E-mail</label>
+                    <input type="email" name="email" class="form-control" placeholder="seu@email.com" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-briefcase-fill me-2"></i>Perfil de Acesso</label>
+                    <select name="perfil" class="form-select" required>
+                        <option value="Recepcionista">Recepcionista</option>
+                        <option value="Mecanico">Mecânico</option>
+                    </select>
+                    <small class="text-muted">O perfil "Admin" só pode ser criado pelo administrador principal.</small>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label"><i class="bi bi-lock-fill me-2"></i>Senha</label>
+                    <input type="password" name="senha" class="form-control" placeholder="Mínimo 6 caracteres" minlength="6" required>
+                </div>
+                
+                <button type="submit" class="btn btn-cadastro">
+                    <i class="bi bi-check-circle me-2"></i>Cadastrar e Ir para Login
+                </button>
+            </form>
+            
+            <div class="text-center mt-3">
+                <a href="{{ url_for('auth.login') }}" class="text-decoration-none text-muted">
+                    <i class="bi bi-arrow-left me-1"></i>Já tem uma conta? Faça Login
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

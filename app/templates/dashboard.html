@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Kuper Autocenter{% endblock %}
+{% block page_title %}Painel de Controle{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-stat {
+        border: none;
+        border-radius: 16px;
+        padding: 25px;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .card-stat:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .card-stat::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    }
+    .stat-value {
+        font-size: 2.8rem;
+        font-weight: 700;
+        margin: 10px 0;
+    }
+    .stat-icon {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        font-size: 3rem;
+        opacity: 0.3;
+    }
+    .chart-container {
+        position: relative;
+        height: 320px;
+    }
+    .bg-gradient-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .bg-gradient-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .bg-gradient-warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .bg-gradient-info { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- 🔔 ALERTAS DE ESTOQUE BAIXO -->
+{% if dados.pecas_estoque_baixo %}
+<div class="alert-estoque {{ 'critico' if dados.pecas_estoque_baixo|length > 3 }}">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h6 class="mb-1 fw-bold">
+                <i class="bi bi-exclamation-triangle-fill"></i> 
+                Atenção: {{ dados.pecas_estoque_baixo|length }} peça(s) com estoque baixo!
+            </h6>
+            <small>
+                {% for peca in dados.pecas_estoque_baixo[:3] %}
+                    <span class="badge bg-warning text-dark me-1">
+                        {{ peca.descricao }} ({{ peca.estoque_atual }} un.)
+                    </span>
+                {% endfor %}
+                {% if dados.pecas_estoque_baixo|length > 3 %}
+                    <span class="badge bg-secondary">+{{ dados.pecas_estoque_baixo|length - 3 }} outras</span>
+                {% endif %}
+            </small>
+        </div>
+        <a href="/pecas" class="btn btn-sm btn-dark">
+            <i class="bi bi-arrow-right"></i> Ver Peças
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- CARDS PRINCIPAIS -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card-stat bg-gradient-primary">
+            <i class="bi bi-people-fill stat-icon"></i>
+            <h6 class="mb-0 opacity-75">Clientes</h6>
+            <div class="stat-value">{{ dados.total_clientes }}</div>
+            <small><i class="bi bi-arrow-up"></i> Total cadastrado</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-stat bg-gradient-success">
+            <i class="bi bi-car-front-fill stat-icon"></i>
+            <h6 class="mb-0 opacity-75">Veículos</h6>
+            <div class="stat-value">{{ dados.total_veiculos }}</div>
+            <small><i class="bi bi-arrow-up"></i> Na base</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-stat bg-gradient-warning">
+            <i class="bi bi-tools stat-icon"></i>
+            <h6 class="mb-0 opacity-75">Mecânicos Ativos</h6>
+            <div class="stat-value">{{ dados.total_mecanicos }}</div>
+            <small><i class="bi bi-check-circle"></i> Disponíveis</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-stat bg-gradient-info">
+            <i class="bi bi-clipboard-check-fill stat-icon"></i>
+            <h6 class="mb-0 opacity-75">OS Abertas</h6>
+            <div class="stat-value">{{ dados.os_abertas }}</div>
+            <small><i class="bi bi-clock"></i> Aguardando</small>
+        </div>
+    </div>
+</div>
+
+<!-- GRÁFICOS -->
+<div class="row g-3 mb-4">
+    <!-- OS por Status -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-pie-chart-fill text-primary"></i> Ordens de Serviço por Status
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="osStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 📊 FATURAMENTO MENSAL -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-graph-up text-success"></i> Faturamento Mensal (Últimos 6 meses)
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="faturamentoChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- RESUMO -->
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-list-check text-info"></i> Estado das OS
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span><span class="badge bg-primary me-2"></span>Em Andamento</span>
+                        <strong>{{ dados.os_andamento }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span><span class="badge bg-warning me-2"></span>Aguardando Peças</span>
+                        <strong>{{ dados.os_aguardando }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span><span class="badge bg-success me-2"></span>Concluídas</span>
+                        <strong>{{ dados.os_concluidas }}</strong>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-cash-stack text-success"></i> Resumo Financeiro
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <div class="text-center">
+                        <h6 class="text-success mb-1">Entradas</h6>
+                        <h4 class="text-success mb-0">R$ {{ "%.2f"|format(dados.entradas) }}</h4>
+                    </div>
+                    <div class="text-center">
+                        <h6 class="text-danger mb-1">Saídas</h6>
+                        <h4 class="text-danger mb-0">R$ {{ "%.2f"|format(dados.saidas) }}</h4>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-center">
+                    <h6 class="text-muted mb-1">Saldo Atual</h6>
+                    <h2 class="text-{{ 'success' if dados.saldo >= 0 else 'danger' }} mb-0">
+                        R$ {{ "%.2f"|format(dados.saldo) }}
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<div id="dashboard-data"
+     data-os='{{ {"abertas": dados.os_abertas, "andamento": dados.os_andamento, "aguardando": dados.os_aguardando, "concluidas": dados.os_concluidas} | tojson | safe }}'
+     data-faturamento='{{ dados.faturamento_mensal | tojson | safe }}'
+     style="display:none;"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Gráfico OS por Status
+new Chart(document.getElementById('osStatusChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Abertas', 'Em Andamento', 'Aguardando Peças', 'Concluídas'],
+        datasets: [{
+            data: [{{ dados.os_abertas }}, {{ dados.os_andamento }}, {{ dados.os_aguardando }}, {{ dados.os_concluidas }}],
+            backgroundColor: ['#4f46e5', '#f59e0b', '#6b7280', '#10b981'],
+            borderWidth: 3,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } }
+    }
+});
+
+// 📊 Gráfico Faturamento Mensal
+const fatData = {{ dados.faturamento_mensal | tojson }};
+new Chart(document.getElementById('faturamentoChart'), {
+    type: 'bar',
+    data: {
+        labels: fatData.map(m => m.mes),
+        datasets: [
+            {
+                label: 'Entradas',
+                data: fatData.map(m => m.entradas),
+                backgroundColor: '#10b981',
+                borderRadius: 6
+            },
+            {
+                label: 'Saídas',
+                data: fatData.map(m => m.saidas),
+                backgroundColor: '#ef4444',
+                borderRadius: 6
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: { y: { beginAtZero: true } }
+    }
+});
+</script>
+{% endblock %}
