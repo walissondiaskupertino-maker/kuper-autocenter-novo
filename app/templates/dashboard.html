@@ -1,53 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Dashboard - Kuper Autocenter{% endblock %}
 {% block page_title %}Painel de Controle{% endblock %}
-
-{% block extra_css %}
-<style>
-    .card-stat {
-        border: none;
-        border-radius: 16px;
-        padding: 25px;
-        color: #fff;
-        position: relative;
-        overflow: hidden;
-        transition: all 0.3s ease;
-    }
-    .card-stat:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-    .card-stat::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-    }
-    .stat-value {
-        font-size: 2.8rem;
-        font-weight: 700;
-        margin: 10px 0;
-    }
-    .stat-icon {
-        position: absolute;
-        right: 20px;
-        top: 20px;
-        font-size: 3rem;
-        opacity: 0.3;
-    }
-    .chart-container {
-        position: relative;
-        height: 320px;
-    }
-    .bg-gradient-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-    .bg-gradient-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
-    .bg-gradient-warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-    .bg-gradient-info { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-</style>
-{% endblock %}
+{% block page_subtitle %}Indicadores e atividade da oficina{% endblock %}
 
 {% block content %}
 
@@ -81,7 +35,7 @@
 <!-- CARDS PRINCIPAIS -->
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">
-        <div class="card-stat bg-gradient-primary">
+        <div class="card-stat card-stat--blue">
             <i class="bi bi-people-fill stat-icon"></i>
             <h6 class="mb-0 opacity-75">Clientes</h6>
             <div class="stat-value">{{ dados.total_clientes }}</div>
@@ -89,7 +43,7 @@
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <div class="card-stat bg-gradient-success">
+        <div class="card-stat card-stat--green">
             <i class="bi bi-car-front-fill stat-icon"></i>
             <h6 class="mb-0 opacity-75">Veículos</h6>
             <div class="stat-value">{{ dados.total_veiculos }}</div>
@@ -97,7 +51,7 @@
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <div class="card-stat bg-gradient-warning">
+        <div class="card-stat card-stat--amber">
             <i class="bi bi-tools stat-icon"></i>
             <h6 class="mb-0 opacity-75">Mecânicos Ativos</h6>
             <div class="stat-value">{{ dados.total_mecanicos }}</div>
@@ -105,7 +59,7 @@
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <div class="card-stat bg-gradient-info">
+        <div class="card-stat card-stat--slate">
             <i class="bi bi-clipboard-check-fill stat-icon"></i>
             <h6 class="mb-0 opacity-75">OS Abertas</h6>
             <div class="stat-value">{{ dados.os_abertas }}</div>
@@ -118,8 +72,8 @@
 <div class="row g-3 mb-4">
     <!-- OS por Status -->
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
+        <div class="card dashboard-card">
+            <div class="card-header dashboard-card-header">
                 <i class="bi bi-pie-chart-fill text-primary"></i> Ordens de Serviço por Status
             </div>
             <div class="card-body">
@@ -132,8 +86,8 @@
     
     <!-- 📊 FATURAMENTO MENSAL -->
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
+        <div class="card dashboard-card">
+            <div class="card-header dashboard-card-header">
                 <i class="bi bi-graph-up text-success"></i> Faturamento Mensal (Últimos 6 meses)
             </div>
             <div class="card-body">
@@ -148,8 +102,8 @@
 <!-- RESUMO -->
 <div class="row g-3">
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
+        <div class="card dashboard-card">
+            <div class="card-header dashboard-card-header">
                 <i class="bi bi-list-check text-info"></i> Estado das OS
             </div>
             <div class="card-body">
@@ -172,8 +126,8 @@
     </div>
     
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
+        <div class="card dashboard-card">
+            <div class="card-header dashboard-card-header">
                 <i class="bi bi-cash-stack text-success"></i> Resumo Financeiro
             </div>
             <div class="card-body">

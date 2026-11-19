@@ -9,6 +9,20 @@ CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 USE kuper_autocenter;
 
+-- =====================================================
+-- USUÁRIOS DO SISTEMA
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL,
+    perfil ENUM('Admin', 'Mecanico', 'Recepcionista')
+        NOT NULL DEFAULT 'Recepcionista',
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
 
 -- =====================================================
 -- 1. CLIENTES

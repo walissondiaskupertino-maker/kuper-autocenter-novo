@@ -1,6 +1,42 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, DecimalField, SelectField, TextAreaField, BooleanField, SubmitField
+from wtforms import StringField, IntegerField, DecimalField, SelectField, TextAreaField, BooleanField, SubmitField, PasswordField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional, Email
+
+
+class CadastroForm(FlaskForm):
+    nome = StringField(
+        'Nome Completo',
+        filters=[lambda value: value.strip() if value else value],
+        validators=[
+            DataRequired(message='Informe seu nome.'),
+            Length(max=100, message='O nome deve ter no máximo 100 caracteres.')
+        ]
+    )
+    email = StringField(
+        'E-mail',
+        filters=[lambda value: value.strip().lower() if value else value],
+        validators=[
+            DataRequired(message='Informe seu e-mail.'),
+            Email(message='Informe um e-mail válido.'),
+            Length(max=100, message='O e-mail deve ter no máximo 100 caracteres.')
+        ]
+    )
+    perfil = SelectField(
+        'Perfil de Acesso',
+        choices=[('Recepcionista', 'Recepcionista'), ('Mecanico', 'Mecânico')],
+        validators=[DataRequired(message='Selecione um perfil.')]
+    )
+    senha = PasswordField(
+        'Senha',
+        validators=[
+            DataRequired(message='Informe uma senha.'),
+            Length(
+                min=6,
+                max=128,
+                message='A senha deve ter entre 6 e 128 caracteres.'
+            )
+        ]
+    )
 
 
 class ClienteForm(FlaskForm):

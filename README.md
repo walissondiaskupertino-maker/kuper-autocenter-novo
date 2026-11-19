@@ -48,7 +48,7 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-2. Configure um banco MySQL e defina as variáveis de ambiente:
+2. Para desenvolvimento local, o sistema usa SQLite automaticamente; o banco fica em `instance/kuper_autocenter.db`. Para usar MySQL, configure as variáveis de ambiente:
 
 ```text
 SECRET_KEY=sua-chave-secreta
@@ -60,8 +60,26 @@ DB_NAME=kuper_autocenter
 ```
 
 As variáveis podem ser armazenadas em um arquivo `.env` na raiz do projeto.
+Em produção, defina `APP_ENV=production` e configure `SECRET_KEY` junto com
+`DATABASE_URL` ou `DB_USER` e `DB_PASSWORD`.
 
-3. Importe o arquivo `app/kuper_autocenter.sql` no MySQL.
+Para criar o primeiro administrador, execute temporariamente:
+
+```text
+HABILITAR_CRIACAO_ADMIN=true
+SENHA_ADMIN_INICIAL=uma-senha-forte
+```
+
+Depois acesse `/auth/criar-admin` uma única vez e desative a variável
+`HABILITAR_CRIACAO_ADMIN`. O e-mail inicial é `admin@kuper.com`.
+
+3. Crie as tabelas ausentes. O comando preserva tabelas existentes:
+
+```powershell
+flask --app run init-db
+```
+
+Também é possível importar `app/kuper_autocenter.sql` em uma instalação MySQL nova.
 
 4. Execute a aplicação:
 

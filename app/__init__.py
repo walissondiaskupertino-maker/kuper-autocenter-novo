@@ -1,3 +1,5 @@
+import os
+import click
 from flask import Flask
 from .config import Config
 from .extensions import db, csrf, login_manager
@@ -5,16 +7,24 @@ from .extensions import db, csrf, login_manager
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    os.makedirs(app.instance_path, exist_ok=True)
 
     db.init_app(app)
     csrf.init_app(app)
     login_manager.init_app(app)
 
+    @app.cli.command('init-db')
+    def init_db_command():
+        """Create database tables that do not exist yet."""
+        with app.app_context():
+            db.create_all()
+        click.echo('Tabelas ausentes criadas (as existentes foram preservadas).')
+
     # Carregar usuário
     @login_manager.user_loader
     def load_user(user_id):
         from .models import Usuario
-        return Usuario.query.get(int(user_id))
+        return db.session.get(Usuario, int(user_id))
 
     # Blueprints
     from .routes.dashboard import dashboard_bp

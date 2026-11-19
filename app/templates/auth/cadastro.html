@@ -101,31 +101,40 @@
                 {% endif %}
             {% endwith %}
             
-            <form method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <form method="POST" novalidate>
+                {{ form.hidden_tag() }}
                 
                 <div class="mb-3">
-                    <label class="form-label"><i class="bi bi-person-fill me-2"></i>Nome Completo</label>
-                    <input type="text" name="nome" class="form-control" placeholder="Seu nome" required>
+                    {{ form.nome.label(class="form-label") }}
+                    {{ form.nome(class="form-control", placeholder="Seu nome", autocomplete="name") }}
+                    {% for error in form.nome.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
                 </div>
                 
                 <div class="mb-3">
-                    <label class="form-label"><i class="bi bi-envelope-fill me-2"></i>E-mail</label>
-                    <input type="email" name="email" class="form-control" placeholder="seu@email.com" required>
+                    {{ form.email.label(class="form-label") }}
+                    {{ form.email(class="form-control", placeholder="seu@email.com", autocomplete="email") }}
+                    {% for error in form.email.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
                 </div>
                 
                 <div class="mb-3">
-                    <label class="form-label"><i class="bi bi-briefcase-fill me-2"></i>Perfil de Acesso</label>
-                    <select name="perfil" class="form-select" required>
-                        <option value="Recepcionista">Recepcionista</option>
-                        <option value="Mecanico">Mecânico</option>
-                    </select>
+                    {{ form.perfil.label(class="form-label") }}
+                    {{ form.perfil(class="form-select") }}
+                    {% for error in form.perfil.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
                     <small class="text-muted">O perfil "Admin" só pode ser criado pelo administrador principal.</small>
                 </div>
                 
                 <div class="mb-4">
-                    <label class="form-label"><i class="bi bi-lock-fill me-2"></i>Senha</label>
-                    <input type="password" name="senha" class="form-control" placeholder="Mínimo 6 caracteres" minlength="6" required>
+                    {{ form.senha.label(class="form-label") }}
+                    {{ form.senha(class="form-control", placeholder="Mínimo 6 caracteres", autocomplete="new-password") }}
+                    {% for error in form.senha.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
                 </div>
                 
                 <button type="submit" class="btn btn-cadastro">

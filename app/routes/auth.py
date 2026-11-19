@@ -2,7 +2,10 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_user, logout_user, login_required
 from app.extensions import db
 from app.models import Usuario
+from app.forms import CadastroForm
 from werkzeug.security import generate_password_hash
+from sqlalchemy.exc import IntegrityError
+from os import getenv
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -30,32 +33,34 @@ def login():
 
 @auth_bp.route('/cadastro', methods=['GET', 'POST'])
 def cadastro():
-    if request.method == 'POST':
-        nome = request.form.get('nome')
-        email = request.form.get('email')
-        senha = request.form.get('senha')
-        perfil = request.form.get('perfil', 'Recepcionista')
-        
-        # Verifica se o e-mail já existe
+    form = CadastroForm()
+    if form.validate_on_submit():
+        email = form.email.data
         if Usuario.query.filter_by(email=email).first():
             flash('Este e-mail já está cadastrado no sistema.', 'danger')
-            return redirect(url_for('auth.cadastro'))
-        
-        # Cria o novo usuário
+            return render_template('auth/cadastro.html', form=form)
+
         novo_usuario = Usuario(
-            nome=nome,
+            nome=form.nome.data,
             email=email,
-            senha=generate_password_hash(senha),
-            perfil=perfil,
+            senha=generate_password_hash(form.senha.data),
+            perfil=form.perfil.data,
             ativo=True
         )
         db.session.add(novo_usuario)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            if Usuario.query.filter_by(email=email).first():
+                flash('Este e-mail já está cadastrado no sistema.', 'danger')
+                return render_template('auth/cadastro.html', form=form)
+            raise
         
         flash('Cadastro realizado com sucesso! Faça login para acessar.', 'success')
         return redirect(url_for('auth.login'))
     
-    return render_template('auth/cadastro.html')
+    return render_template('auth/cadastro.html', form=form)
 
 @auth_bp.route('/logout')
 def logout():
@@ -66,15 +71,25 @@ def logout():
 
 @auth_bp.route('/criar-admin')
 def criar_admin():
-    """Rota de emergência para criar o primeiro administrador"""
+    """Cria o administrador inicial apenas quando uma instalação foi autorizada."""
+    inicializacao_habilitada = getenv('HABILITAR_CRIACAO_ADMIN', '').lower() in ('1', 'true', 'yes')
+    senha_inicial = getenv('SENHA_ADMIN_INICIAL')
+
+    if not inicializacao_habilitada or not senha_inicial:
+        flash('A criação inicial do administrador não está habilitada.', 'danger')
+        return redirect(url_for('auth.login'))
+
     if Usuario.query.filter_by(perfil='Admin').count() == 0:
         admin = Usuario(
-            nome='Administrador', 
+            nome='Administrador',
             email='admin@kuper.com',
-            senha=generate_password_hash('admin123'), 
+            senha=generate_password_hash(senha_inicial),
             perfil='Admin'
         )
         db.session.add(admin)
         db.session.commit()
-        return '✅ Admin criado! Email: admin@kuper.com | Senha: admin123<br><a href="/auth/login">Ir para Login</a>'
-    return '⚠️ Admin já existe.'
+        flash('Administrador inicial criado com sucesso.', 'success')
+        return redirect(url_for('auth.login'))
+
+    flash('Já existe um administrador cadastrado.', 'warning')
+    return redirect(url_for('auth.login'))
