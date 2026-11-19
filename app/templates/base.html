@@ -49,9 +49,12 @@
             <a href="{{ url_for('financeiro.lista') }}" class="nav-link {% if request.blueprint == 'financeiro' %}active{% endif %}"><i class="bi bi-cash-stack"></i><span>Financeiro</span></a>
         </nav>
 
-        <a href="{{ url_for('auth.logout') }}" class="nav-link nav-link-danger" data-confirm="Deseja realmente sair do sistema?">
-            <i class="bi bi-box-arrow-right"></i><span>Sair do Sistema</span>
-        </a>
+        <form method="POST" action="{{ url_for('auth.logout') }}" class="logout-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn nav-link nav-link-danger w-100 text-start border-0 bg-transparent" data-confirm="Deseja realmente sair do sistema?">
+                <i class="bi bi-box-arrow-right"></i><span>Sair do Sistema</span>
+            </button>
+        </form>
     </aside>
 
     <main class="main-content">

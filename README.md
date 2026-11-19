@@ -63,15 +63,14 @@ As variáveis podem ser armazenadas em um arquivo `.env` na raiz do projeto.
 Em produção, defina `APP_ENV=production` e configure `SECRET_KEY` junto com
 `DATABASE_URL` ou `DB_USER` e `DB_PASSWORD`.
 
-Para criar o primeiro administrador, execute temporariamente:
+Para criar o primeiro administrador, use o comando interativo no terminal:
 
-```text
-HABILITAR_CRIACAO_ADMIN=true
-SENHA_ADMIN_INICIAL=uma-senha-forte
+```powershell
+flask --app run create-admin
 ```
 
-Depois acesse `/auth/criar-admin` uma única vez e desative a variável
-`HABILITAR_CRIACAO_ADMIN`. O e-mail inicial é `admin@kuper.com`.
+O comando solicita e confirma a senha sem exibi-la. Não há rota web pública
+para criar administradores.
 
 3. Crie as tabelas ausentes. O comando preserva tabelas existentes:
 
@@ -88,6 +87,21 @@ python run.py
 ```
 
 Acesse `http://127.0.0.1:5000`.
+
+As rotas operacionais exigem autenticação. Para criar o primeiro administrador,
+execute `flask --app run create-admin` em um terminal local; o comando solicita
+e confirma a senha sem exibi-la. O cadastro web permite apenas os perfis
+Recepcionista e Mecânico.
+
+## Testes
+
+Instale as dependências do arquivo `requirements.txt` e execute:
+
+```powershell
+pytest
+```
+
+Os testes usam um banco SQLite temporário e não acessam o banco MySQL de produção.
 
 ## Interface
 

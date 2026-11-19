@@ -1,11 +1,10 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
-from flask_login import login_user, logout_user, login_required
+from flask_login import login_user, logout_user
 from app.extensions import db
 from app.models import Usuario
 from app.forms import CadastroForm
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
-from os import getenv
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -62,34 +61,9 @@ def cadastro():
     
     return render_template('auth/cadastro.html', form=form)
 
-@auth_bp.route('/logout')
+@auth_bp.route('/logout', methods=['POST'])
 def logout():
     logout_user()
     session.clear()
     flash('Você saiu do sistema com sucesso.', 'info')
-    return redirect(url_for('auth.login'))
-
-@auth_bp.route('/criar-admin')
-def criar_admin():
-    """Cria o administrador inicial apenas quando uma instalação foi autorizada."""
-    inicializacao_habilitada = getenv('HABILITAR_CRIACAO_ADMIN', '').lower() in ('1', 'true', 'yes')
-    senha_inicial = getenv('SENHA_ADMIN_INICIAL')
-
-    if not inicializacao_habilitada or not senha_inicial:
-        flash('A criação inicial do administrador não está habilitada.', 'danger')
-        return redirect(url_for('auth.login'))
-
-    if Usuario.query.filter_by(perfil='Admin').count() == 0:
-        admin = Usuario(
-            nome='Administrador',
-            email='admin@kuper.com',
-            senha=generate_password_hash(senha_inicial),
-            perfil='Admin'
-        )
-        db.session.add(admin)
-        db.session.commit()
-        flash('Administrador inicial criado com sucesso.', 'success')
-        return redirect(url_for('auth.login'))
-
-    flash('Já existe um administrador cadastrado.', 'warning')
     return redirect(url_for('auth.login'))

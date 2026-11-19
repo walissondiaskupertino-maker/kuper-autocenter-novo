@@ -1,6 +1,9 @@
 import os
 import click
-from flask import Flask
+from flask import Flask, request
+from flask_login import current_user
+from sqlalchemy.exc import IntegrityError
+from werkzeug.security import generate_password_hash
 from .config import Config
 from .extensions import db, csrf, login_manager
 
@@ -19,6 +22,47 @@ def create_app():
         with app.app_context():
             db.create_all()
         click.echo('Tabelas ausentes criadas (as existentes foram preservadas).')
+
+    @app.cli.command('create-admin')
+    @click.option('--email', prompt=True)
+    @click.option('--nome', prompt='Nome', default='Administrador')
+    @click.password_option('--password', confirmation_prompt=True)
+    def create_admin_command(email, nome, password):
+        """Create the first administrator from a local terminal."""
+        from .models import Usuario
+
+        email = email.strip().lower()
+        with app.app_context():
+            if Usuario.query.filter_by(perfil='Admin').first():
+                raise click.ClickException('Já existe um administrador cadastrado.')
+            if Usuario.query.filter_by(email=email).first():
+                raise click.ClickException('Este e-mail já está cadastrado.')
+
+            db.session.add(Usuario(
+                nome=nome.strip(),
+                email=email,
+                senha=generate_password_hash(password),
+                perfil='Admin',
+                ativo=True
+            ))
+            try:
+                db.session.commit()
+            except IntegrityError as error:
+                db.session.rollback()
+                raise click.ClickException(
+                    'Não foi possível criar o administrador; verifique os dados e tente novamente.'
+                ) from error
+
+        click.echo('Administrador criado com sucesso.')
+
+    @app.before_request
+    def protect_application_routes():
+        public_endpoints = {'auth.login', 'auth.cadastro', 'static'}
+        if request.endpoint is None or request.endpoint in public_endpoints:
+            return None
+        if not current_user.is_authenticated:
+            return login_manager.unauthorized()
+        return None
 
     # Carregar usuário
     @login_manager.user_loader

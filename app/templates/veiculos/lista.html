@@ -42,6 +42,7 @@
                             </a>
                             <form method="POST" action="{{ url_for('veiculos.excluir', id=v.id) }}" 
                                   style="display:inline" onsubmit="return confirm('Tem certeza?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-danger" title="Excluir">
                                     <i class="bi bi-trash"></i>
                                 </button>

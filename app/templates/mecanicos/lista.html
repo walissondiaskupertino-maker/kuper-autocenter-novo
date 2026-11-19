@@ -43,6 +43,7 @@
                                 <i class="bi bi-pencil"></i>
                             </a>
                             <form method="POST" action="{{ url_for('mecanicos.excluir', id=mecanico.id) }}" style="display:inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Excluir este mecânico?')" title="Excluir">
                                     <i class="bi bi-trash"></i>
                                 </button>

@@ -1,5 +1,6 @@
 import os
 import secrets
+from datetime import timedelta
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
 
@@ -7,6 +8,7 @@ load_dotenv()
 
 class Config:
     APP_ENV = os.getenv('APP_ENV', 'development').lower()
+    DEBUG = APP_ENV == 'development'
     SECRET_KEY = os.getenv("SECRET_KEY")
     if not SECRET_KEY:
         if APP_ENV == 'production':
@@ -44,3 +46,10 @@ class Config:
         'pool_pre_ping': True,
         'pool_recycle': 280,
     }
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SECURE = APP_ENV == 'production'
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = 'Lax'
+    REMEMBER_COOKIE_SECURE = APP_ENV == 'production'
+    REMEMBER_COOKIE_DURATION = timedelta(days=14)

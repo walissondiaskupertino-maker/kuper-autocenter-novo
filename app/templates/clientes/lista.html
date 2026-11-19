@@ -30,6 +30,7 @@
                     <td>
                         <a href="{{ url_for('clientes.editar', id=c.id) }}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
                         <form method="POST" action="{{ url_for('clientes.excluir', id=c.id) }}" style="display:inline" onsubmit="return confirm('Tem certeza?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
                         </form>
                     </td>

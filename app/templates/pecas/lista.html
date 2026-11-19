@@ -54,6 +54,7 @@
                             </a>
                             <form method="POST" action="{{ url_for('pecas.excluir', id=p.id) }}" 
                                   style="display:inline" onsubmit="return confirm('Tem certeza?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-danger">
                                     <i class="bi bi-trash"></i>
                                 </button>
