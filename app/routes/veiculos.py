@@ -1,14 +1,18 @@
 from flask import Blueprint, render_template, redirect, url_for, flash
 from app.extensions import db
-from app.models import Veiculo, Cliente
+from app.models import Veiculo
 from app.forms import VeiculoForm
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 
 veiculos_bp = Blueprint('veiculos', __name__)
 
 
 @veiculos_bp.route('/')
 def lista():
-    veiculos = Veiculo.query.join(Cliente).order_by(Veiculo.placa).all()
+    veiculos = Veiculo.query.options(
+        joinedload(Veiculo.cliente)
+    ).order_by(Veiculo.placa).all()
     return render_template('veiculos/lista.html', veiculos=veiculos)
 
 
@@ -54,6 +58,14 @@ def editar(id):
 def excluir(id):
     veiculo = Veiculo.query.get_or_404(id)
     db.session.delete(veiculo)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash(
+            'Este veículo possui ordens de serviço vinculadas e não pode ser excluído.',
+            'danger'
+        )
+        return redirect(url_for('veiculos.lista'))
     flash('Veículo excluído com sucesso!', 'success')
     return redirect(url_for('veiculos.lista'))

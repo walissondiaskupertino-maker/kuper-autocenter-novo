@@ -16,7 +16,12 @@ class Cliente(db.Model):
     created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
     updated_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    veiculos = db.relationship('Veiculo', backref='cliente', lazy=True, cascade='all, delete-orphan')
+    veiculos = db.relationship(
+        'Veiculo',
+        backref='cliente',
+        lazy=True,
+        passive_deletes=True
+    )
 
     def __repr__(self):
         return f"<Cliente {self.nome}>"
@@ -122,7 +127,10 @@ class OsServico(db.Model):
     servico_id = db.Column(db.Integer, db.ForeignKey('servicos.id', ondelete='RESTRICT'), nullable=False)
     quantidade = db.Column(db.Integer, nullable=False, default=1)
     preco_unitario = db.Column(db.Numeric(10, 2), nullable=False)
-    subtotal = db.Column(db.Numeric(10, 2))
+    subtotal = db.Column(
+        db.Numeric(10, 2),
+        db.Computed('quantidade * preco_unitario', persisted=True)
+    )
 
     servico = db.relationship('Servico', lazy=True)
 
@@ -138,7 +146,10 @@ class OsPeca(db.Model):
     peca_id = db.Column(db.Integer, db.ForeignKey('pecas.id', ondelete='RESTRICT'), nullable=False)
     quantidade = db.Column(db.Integer, nullable=False, default=1)
     preco_unitario = db.Column(db.Numeric(10, 2), nullable=False)
-    subtotal = db.Column(db.Numeric(10, 2))
+    subtotal = db.Column(
+        db.Numeric(10, 2),
+        db.Computed('quantidade * preco_unitario', persisted=True)
+    )
 
     peca = db.relationship('Peca', lazy=True)
 
@@ -190,7 +201,18 @@ class Usuario(UserMixin, db.Model):
     senha = db.Column(db.String(255), nullable=False)
     perfil = db.Column(db.Enum('Admin', 'Mecanico', 'Recepcionista', name='perfil_enum'), nullable=False, default='Recepcionista')
     ativo = db.Column(db.Boolean, default=True)
+    mecanico_id = db.Column(
+        db.Integer,
+        db.ForeignKey('mecanicos.id', ondelete='SET NULL', onupdate='CASCADE'),
+        unique=True,
+        nullable=True
+    )
     created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    mecanico = db.relationship(
+        'Mecanico',
+        backref=db.backref('usuario', uselist=False),
+        uselist=False
+    )
     
     def verificar_senha(self, senha):
         return check_password_hash(self.senha, senha)

@@ -3,6 +3,9 @@
 {% block page_title %}Ordem de Serviço #{{ os_obj.id }}{% endblock %}
 
 {% block content %}
+{% set is_admin = current_user.perfil == 'Admin' %}
+{% set is_receptionist = current_user.perfil == 'Recepcionista' %}
+{% set is_mechanic = current_user.perfil == 'Mecanico' %}
 <!-- BOTÕES DE AÇÃO -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
@@ -15,11 +18,13 @@
     </div>
     <div class="d-flex gap-2">
         <!-- 🖨️ BOTÃO IMPRIMIR OS -->
+        {% if not is_mechanic %}
         <a href="{{ url_for('relatorios.os_pdf_detalhe', id=os_obj.id) }}" class="btn btn-danger" target="_blank">
             <i class="bi bi-file-pdf"></i> Imprimir OS
         </a>
+        {% endif %}
         
-        {% if os_obj.status != 'Concluído' and os_obj.status != 'Cancelado' %}
+        {% if is_admin and os_obj.status != 'Concluído' and os_obj.status != 'Cancelado' %}
         <form method="POST" action="{{ url_for('ordens_servico.concluir', id=os_obj.id) }}" style="display:inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-success" onclick="return confirm('Concluir esta OS? Será gerado o lançamento financeiro.')">
@@ -28,9 +33,11 @@
         </form>
         {% endif %}
         
+        {% if is_admin or is_receptionist %}
         <a href="{{ url_for('ordens_servico.editar', id=os_obj.id) }}" class="btn btn-warning">
             <i class="bi bi-pencil"></i> Editar
         </a>
+        {% endif %}
         <a href="{{ url_for('ordens_servico.lista') }}" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Voltar
         </a>
@@ -64,6 +71,14 @@
                 <p class="bg-light p-2 rounded">{{ os_obj.defeito_relatado or 'Não informado' }}</p>
                 <p><strong>Diagnóstico:</strong></p>
                 <p class="bg-light p-2 rounded">{{ os_obj.diagnostico or 'Não informado' }}</p>
+                {% if is_mechanic %}
+                <form method="POST" action="{{ url_for('ordens_servico.atualizar_diagnostico', id=os_obj.id) }}" class="mt-3">
+                    {{ diagnostico_form.hidden_tag() }}
+                    {{ diagnostico_form.diagnostico.label(class="form-label") }}
+                    {{ diagnostico_form.diagnostico(class="form-control", rows=4, maxlength=5000) }}
+                    <button type="submit" class="btn btn-primary mt-2">Salvar diagnóstico</button>
+                </form>
+                {% endif %}
             </div>
         </div>
 
@@ -71,9 +86,11 @@
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong><i class="bi bi-gear"></i> Serviços</strong>
+                {% if is_admin or is_receptionist %}
                 <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalServico">
                     <i class="bi bi-plus"></i> Adicionar Serviço
                 </button>
+                {% endif %}
             </div>
             <div class="card-body">
                 {% if os_obj.servicos %}
@@ -82,9 +99,8 @@
                         <tr>
                             <th>Serviço</th>
                             <th>Qtd</th>
-                            <th>Preço Unit.</th>
-                            <th>Subtotal</th>
-                            <th></th>
+                            {% if not is_mechanic %}<th>Preço Unit.</th><th>Subtotal</th>{% endif %}
+                            {% if is_admin %}<th></th>{% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -92,16 +108,18 @@
                         <tr>
                             <td>{{ item.servico.nome }}</td>
                             <td>{{ item.quantidade }}</td>
+                            {% if not is_mechanic %}
                             <td>R$ {{ "%.2f"|format(item.preco_unitario) }}</td>
                             <td><strong>R$ {{ "%.2f"|format(item.subtotal or (item.quantidade * item.preco_unitario)) }}</strong></td>
-                            <td>
+                            {% endif %}
+                            {% if is_admin %}<td>
                                 <form method="POST" action="{{ url_for('ordens_servico.remover_item', id_os=os_obj.id, tipo='servico', id_item=item.id) }}" style="display:inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button class="btn btn-sm btn-danger" onclick="return confirm('Remover este serviço?')">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
-                            </td>
+                            </td>{% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -116,9 +134,11 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong><i class="bi bi-box-seam"></i> Peças Utilizadas</strong>
+                {% if is_admin %}
                 <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalPeca">
                     <i class="bi bi-plus"></i> Adicionar Peça
                 </button>
+                {% endif %}
             </div>
             <div class="card-body">
                 {% if os_obj.pecas %}
@@ -128,9 +148,8 @@
                             <th>Peça</th>
                             <th>Código</th>
                             <th>Qtd</th>
-                            <th>Preço Unit.</th>
-                            <th>Subtotal</th>
-                            <th></th>
+                            {% if not is_mechanic %}<th>Preço Unit.</th><th>Subtotal</th>{% endif %}
+                            {% if is_admin %}<th></th>{% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -139,16 +158,18 @@
                             <td>{{ item.peca.descricao }}</td>
                             <td><small>{{ item.peca.codigo or '-' }}</small></td>
                             <td>{{ item.quantidade }}</td>
+                            {% if not is_mechanic %}
                             <td>R$ {{ "%.2f"|format(item.preco_unitario) }}</td>
                             <td><strong>R$ {{ "%.2f"|format(item.subtotal or (item.quantidade * item.preco_unitario)) }}</strong></td>
-                            <td>
+                            {% endif %}
+                            {% if is_admin %}<td>
                                 <form method="POST" action="{{ url_for('ordens_servico.remover_item', id_os=os_obj.id, tipo='peca', id_item=item.id) }}" style="display:inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button class="btn btn-sm btn-danger" onclick="return confirm('Remover esta peça? O estoque será reposto.')">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
-                            </td>
+                            </td>{% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -164,12 +185,14 @@
     <div class="col-md-4">
         
         <!-- Card de Total -->
+        {% if not is_mechanic %}
         <div class="card bg-primary text-white mb-4">
             <div class="card-body text-center">
                 <h5 class="card-title"><i class="bi bi-cash-stack"></i> Total da OS</h5>
                 <h2 class="display-4">R$ {{ "%.2f"|format(os_obj.valor_total or 0) }}</h2>
             </div>
         </div>
+        {% endif %}
 
         <!-- Status -->
         <div class="card mb-4">
@@ -204,6 +227,7 @@
     </div>
 </div>
 
+{% if is_admin or is_receptionist %}
 <!-- MODAL: Adicionar Serviço -->
 <div class="modal fade" id="modalServico" tabindex="-1">
     <div class="modal-dialog">
@@ -237,7 +261,9 @@
         </form>
     </div>
 </div>
+{% endif %}
 
+{% if is_admin %}
 <!-- MODAL: Adicionar Peça -->
 <div class="modal fade" id="modalPeca" tabindex="-1">
     <div class="modal-dialog">
@@ -274,4 +300,5 @@
         </form>
     </div>
 </div>
+{% endif %}
 {% endblock %}

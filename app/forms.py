@@ -100,6 +100,13 @@ class OrdemServicoForm(FlaskForm):
     submit = SubmitField('Salvar')
 
 
+class DiagnosticoForm(FlaskForm):
+    diagnostico = TextAreaField(
+        'Diagnóstico técnico',
+        validators=[Optional(), Length(max=5000)]
+    )
+
+
 class FinanceiroForm(FlaskForm):
     tipo = SelectField('Tipo', choices=[('Entrada', 'Entrada'), ('Saida', 'Saída')], validators=[DataRequired()])
     descricao = StringField('Descrição', validators=[DataRequired(), Length(max=255)])

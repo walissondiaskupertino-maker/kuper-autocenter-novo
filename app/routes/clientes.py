@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash
 from app.extensions import db
 from app.models import Cliente
 from app.forms import ClienteForm
+from sqlalchemy.exc import IntegrityError
 
 clientes_bp = Blueprint('clientes', __name__)
 
@@ -43,6 +44,14 @@ def editar(id):
 def excluir(id):
     cliente = Cliente.query.get_or_404(id)
     db.session.delete(cliente)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash(
+            'Não é possível excluir um cliente que possui veículos vinculados.',
+            'danger'
+        )
+        return redirect(url_for('clientes.lista'))
     flash('Cliente excluído com sucesso!', 'success')
     return redirect(url_for('clientes.lista'))

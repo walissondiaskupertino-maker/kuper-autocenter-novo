@@ -79,6 +79,15 @@ CREATE TABLE IF NOT EXISTS mecanicos (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+ALTER TABLE usuarios
+    ADD COLUMN mecanico_id INT NULL,
+    ADD CONSTRAINT fk_usuario_mecanico
+        FOREIGN KEY (mecanico_id)
+        REFERENCES mecanicos(id)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE,
+    ADD UNIQUE KEY uq_usuarios_mecanico_id (mecanico_id);
+
 -- =====================================================
 -- 4. PEÇAS E ESTOQUE
 -- =====================================================

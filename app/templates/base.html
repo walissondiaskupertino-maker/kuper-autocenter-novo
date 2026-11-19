@@ -13,6 +13,11 @@
 </head>
 <body>
 
+    {% if current_user.is_authenticated %}
+        {% set home_url = url_for('dashboard.index') if current_user.perfil == 'Admin' else url_for('clientes.lista') if current_user.perfil == 'Recepcionista' else url_for('ordens_servico.lista') %}
+    {% else %}
+        {% set home_url = url_for('auth.login') %}
+    {% endif %}
     <button class="sidebar-toggle d-lg-none" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Abrir menu">
         <i class="bi bi-list"></i>
     </button>
@@ -20,7 +25,7 @@
 
     <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
         <div class="sidebar-brand">
-            <a href="{{ url_for('dashboard.index') }}" class="brand-link">
+            <a href="{{ home_url }}" class="brand-link">
                 <span class="brand-mark"><i class="bi bi-car-front-fill"></i></span>
                 <span><strong>Kuper</strong><small>Autocenter</small></span>
             </a>
@@ -30,23 +35,40 @@
         </div>
 
         <nav class="sidebar-nav">
+            {% set is_admin = current_user.is_authenticated and current_user.perfil == 'Admin' %}
+            {% set is_receptionist = current_user.is_authenticated and current_user.perfil == 'Recepcionista' %}
+            {% set is_mechanic = current_user.is_authenticated and current_user.perfil == 'Mecanico' %}
             <div class="nav-section">Principal</div>
+            {% if is_admin %}
             <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" {% if request.endpoint == 'dashboard.index' %}aria-current="page"{% endif %}>
                 <i class="bi bi-speedometer2"></i><span>Dashboard</span>
             </a>
+            {% endif %}
 
+            {% if is_admin or is_receptionist %}
             <div class="nav-section">Cadastros</div>
             <a href="{{ url_for('clientes.lista') }}" class="nav-link {% if request.blueprint == 'clientes' %}active{% endif %}"><i class="bi bi-people"></i><span>Clientes</span></a>
             <a href="{{ url_for('veiculos.lista') }}" class="nav-link {% if request.blueprint == 'veiculos' %}active{% endif %}"><i class="bi bi-car-front"></i><span>Veículos</span></a>
+            {% endif %}
+
+            {% if is_admin %}
+            <div class="nav-section">Cadastros internos</div>
             <a href="{{ url_for('mecanicos.lista') }}" class="nav-link {% if request.blueprint == 'mecanicos' %}active{% endif %}"><i class="bi bi-tools"></i><span>Mecânicos</span></a>
 
             <div class="nav-section">Operacional</div>
             <a href="{{ url_for('pecas.lista') }}" class="nav-link {% if request.blueprint == 'pecas' %}active{% endif %}"><i class="bi bi-box-seam"></i><span>Peças</span></a>
             <a href="{{ url_for('servicos.lista') }}" class="nav-link {% if request.blueprint == 'servicos' %}active{% endif %}"><i class="bi bi-gear"></i><span>Serviços</span></a>
-            <a href="{{ url_for('ordens_servico.lista') }}" class="nav-link {% if request.blueprint == 'ordens_servico' %}active{% endif %}"><i class="bi bi-clipboard-check"></i><span>Ordens de Serviço</span></a>
+            {% endif %}
 
+            {% if is_admin or is_receptionist or is_mechanic %}
+            <div class="nav-section">Operacional</div>
+            <a href="{{ url_for('ordens_servico.lista') }}" class="nav-link {% if request.blueprint == 'ordens_servico' %}active{% endif %}"><i class="bi bi-clipboard-check"></i><span>Ordens de Serviço</span></a>
+            {% endif %}
+
+            {% if is_admin %}
             <div class="nav-section">Gestão</div>
             <a href="{{ url_for('financeiro.lista') }}" class="nav-link {% if request.blueprint == 'financeiro' %}active{% endif %}"><i class="bi bi-cash-stack"></i><span>Financeiro</span></a>
+            {% endif %}
         </nav>
 
         <form method="POST" action="{{ url_for('auth.logout') }}" class="logout-form">

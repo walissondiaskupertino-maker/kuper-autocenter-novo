@@ -78,7 +78,24 @@ para criar administradores.
 flask --app run init-db
 ```
 
-Também é possível importar `app/kuper_autocenter.sql` em uma instalação MySQL nova.
+O arquivo `app/kuper_autocenter.sql` é somente para uma instalação MySQL nova:
+ele cria e popula tabelas de exemplo e não deve ser executado em um banco existente.
+
+Para instalações existentes, faça backup e aplique uma única vez a migração
+correspondente ao banco em `migrations/mysql/` ou `migrations/sqlite/` antes de
+atualizar o código. `init-db` cria tabelas ausentes, mas não altera tabelas existentes.
+
+Após cadastrar a conta com perfil Mecânico e criar seu registro no módulo
+Mecânicos, vincule ambos pelo terminal local usando o e-mail da conta e o ID do
+cadastro:
+
+```powershell
+flask --app run link-mechanic --email mecanico@example.com --mecanico-id 1
+```
+
+O perfil Mecânico só consegue acessar as OS atribuídas a esse cadastro e atualizar
+o diagnóstico. Recepcionistas operam clientes, veículos e abertura/edição básica
+de OS; somente Admin acessa financeiro, estoque e cadastros administrativos.
 
 4. Execute a aplicação:
 
@@ -88,10 +105,9 @@ python run.py
 
 Acesse `http://127.0.0.1:5000`.
 
-As rotas operacionais exigem autenticação. Para criar o primeiro administrador,
-execute `flask --app run create-admin` em um terminal local; o comando solicita
-e confirma a senha sem exibi-la. O cadastro web permite apenas os perfis
-Recepcionista e Mecânico.
+As rotas operacionais exigem autenticação. O cadastro web aceita somente os
+perfis Recepcionista e Mecânico; contas de mecânico precisam ser vinculadas a
+um cadastro ativo antes do primeiro acesso.
 
 ## Testes
 
@@ -119,5 +135,7 @@ Padrões de interface:
 
 - Não mantenha credenciais padrão em ambiente de produção.
 - Configure `SECRET_KEY` com um valor aleatório.
-- Revise a rota de criação do primeiro administrador antes de publicar o sistema.
+- Crie administradores somente pelo comando CLI `create-admin`.
+- As permissões são verificadas no servidor por perfil; a navegação também oculta módulos não autorizados.
+- Aplique a migração de vínculo de mecânicos antes de atualizar uma instalação existente.
 - Habilite HTTPS em produção.

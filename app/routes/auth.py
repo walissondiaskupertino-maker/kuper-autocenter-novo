@@ -19,12 +19,26 @@ def login():
             if not usuario.ativo:
                 flash('Usuário desativado. Contate o administrador.', 'danger')
                 return redirect(url_for('auth.login'))
+            if (
+                usuario.perfil == 'Mecanico'
+                and (
+                    usuario.mecanico is None
+                    or not usuario.mecanico.ativo
+                )
+            ):
+                flash('Conta de mecânico ainda não vinculada. Contate o administrador.', 'warning')
+                return redirect(url_for('auth.login'))
                 
             login_user(usuario, remember=True)
             session['usuario_nome'] = usuario.nome
             session['usuario_perfil'] = usuario.perfil
             flash(f'Bem-vindo(a), {usuario.nome}!', 'success')
-            return redirect(url_for('dashboard.index'))
+            home_endpoint = {
+                'Admin': 'dashboard.index',
+                'Recepcionista': 'clientes.lista',
+                'Mecanico': 'ordens_servico.lista',
+            }[usuario.perfil]
+            return redirect(url_for(home_endpoint))
         
         flash('E-mail ou senha inválidos.', 'danger')
     
