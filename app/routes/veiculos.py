@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash
 from app.extensions import db
-from app.models import Veiculo
+from app.models import Cliente, Veiculo
 from app.forms import VeiculoForm
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
@@ -21,16 +21,24 @@ def novo():
     form = VeiculoForm()
     form.cliente_id.choices = [(c.id, c.nome) for c in Cliente.query.order_by(Cliente.nome).all()]
     if form.validate_on_submit():
+        placa = form.placa.data
         veiculo = Veiculo(
             cliente_id=form.cliente_id.data,
-            placa=form.placa.data.upper(),
+            placa=placa,
             modelo=form.modelo.data,
             marca=form.marca.data,
             ano=form.ano.data,
             quilometragem=form.quilometragem.data or 0
         )
         db.session.add(veiculo)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            if Veiculo.query.filter_by(placa=placa).first():
+                flash('Já existe um veículo cadastrado com esta placa.', 'danger')
+                return render_template('veiculos/form.html', form=form, titulo='Novo Veículo')
+            raise
         flash('Veículo cadastrado com sucesso!', 'success')
         return redirect(url_for('veiculos.lista'))
     return render_template('veiculos/form.html', form=form, titulo='Novo Veículo')
@@ -42,13 +50,25 @@ def editar(id):
     form = VeiculoForm(obj=veiculo)
     form.cliente_id.choices = [(c.id, c.nome) for c in Cliente.query.order_by(Cliente.nome).all()]
     if form.validate_on_submit():
+        placa = form.placa.data
         veiculo.cliente_id = form.cliente_id.data
-        veiculo.placa = form.placa.data.upper()
+        veiculo.placa = placa
         veiculo.modelo = form.modelo.data
         veiculo.marca = form.marca.data
         veiculo.ano = form.ano.data
         veiculo.quilometragem = form.quilometragem.data or 0
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            duplicate = Veiculo.query.filter(
+                Veiculo.placa == placa,
+                Veiculo.id != veiculo.id,
+            ).first()
+            if duplicate:
+                flash('Já existe um veículo cadastrado com esta placa.', 'danger')
+                return render_template('veiculos/form.html', form=form, titulo='Editar Veículo')
+            raise
         flash('Veículo atualizado com sucesso!', 'success')
         return redirect(url_for('veiculos.lista'))
     return render_template('veiculos/form.html', form=form, titulo='Editar Veículo')

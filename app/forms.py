@@ -50,11 +50,16 @@ class ClienteForm(FlaskForm):
 
 class VeiculoForm(FlaskForm):
     cliente_id = SelectField('Cliente', coerce=int, validators=[DataRequired()])
-    placa = StringField('Placa', validators=[DataRequired(), Length(max=10)])
+    placa = StringField(
+        'Placa',
+        filters=[lambda value: value.strip().upper() if value else value],
+        validators=[DataRequired(), Length(max=10)]
+    )
     modelo = StringField('Modelo', validators=[DataRequired(), Length(max=50)])
     marca = StringField('Marca', validators=[DataRequired(), Length(max=50)])
     ano = IntegerField('Ano', validators=[Optional()])
     quilometragem = IntegerField('Quilometragem', validators=[Optional(), NumberRange(min=0)])
+    submit = SubmitField('Salvar')
     submit = SubmitField('Salvar')
 
 
