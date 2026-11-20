@@ -4,9 +4,17 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-cash-stack"></i> Financeiro</h2>
-    <a href="{{ url_for('financeiro.novo') }}" class="btn btn-primary">
-        <i class="bi bi-plus-lg"></i> Novo Lançamento
-    </a>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('relatorios.financeiro_pdf', tipo=tipo or None) }}" class="btn btn-outline-danger">
+            <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+        </a>
+        <a href="{{ url_for('relatorios.financeiro_excel', tipo=tipo or None) }}" class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+        </a>
+        <a href="{{ url_for('financeiro.novo') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Novo Lançamento
+        </a>
+    </div>
 </div>
 
 <!-- Cards de Resumo -->
@@ -63,6 +71,7 @@
                         <th>Categoria</th>
                         <th>Pagamento</th>
                         <th>OS</th>
+                        <th>Venda</th>
                         <th>Valor</th>
                         <th></th>
                     </tr>
@@ -90,16 +99,29 @@
                                 -
                             {% endif %}
                         </td>
+                        <td>
+                            {% if l.venda_id %}
+                                <a href="{{ url_for('vendas.detalhe', venda_id=l.venda_id) }}" class="badge bg-primary text-decoration-none">
+                                    Venda #{{ l.venda_id }}
+                                </a>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
                         <td class="text-{{ 'success' if l.tipo=='Entrada' else 'danger' }}">
                             <strong>R$ {{ "%.2f"|format(l.valor) }}</strong>
                         </td>
                         <td>
+                            {% if not l.venda_id %}
                             <form method="POST" action="{{ url_for('financeiro.excluir', id=l.id) }}" style="display:inline" onsubmit="return confirm('Excluir este lançamento?')">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button class="btn btn-sm btn-danger">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
+                            {% else %}
+                                <span class="text-muted" title="Recebimentos vinculados a vendas são imutáveis"><i class="bi bi-lock"></i></span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

@@ -37,6 +37,7 @@ def login():
                 'Admin': 'dashboard.index',
                 'Recepcionista': 'clientes.lista',
                 'Mecanico': 'ordens_servico.lista',
+                'Vendedor': 'vendas.lista',
             }[usuario.perfil]
             return redirect(url_for(home_endpoint))
         

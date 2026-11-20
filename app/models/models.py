@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from app.extensions import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -177,12 +178,19 @@ class Financeiro(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     os_id = db.Column(db.Integer, db.ForeignKey('ordens_servico.id', ondelete='SET NULL'), nullable=True)
+    venda_id = db.Column(
+        db.Integer,
+        db.ForeignKey('vendas.id', ondelete='SET NULL'),
+        nullable=True,
+        index=True,
+    )
     tipo = db.Column(db.Enum('Entrada', 'Saida', name='tipo_fin_enum'), nullable=False)
     descricao = db.Column(db.String(255), nullable=False)
     valor = db.Column(db.Numeric(10, 2), nullable=False)
     categoria = db.Column(db.String(80))
     forma_pagamento = db.Column(db.String(50))
     data_movimentacao = db.Column(db.DateTime, default=datetime.utcnow)
+    venda = db.relationship('Venda', back_populates='lancamentos_financeiros')
 
     def __repr__(self):
         return f"<Financeiro {self.tipo} - R$ {self.valor}>"
@@ -199,7 +207,11 @@ class Usuario(UserMixin, db.Model):
     nome = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     senha = db.Column(db.String(255), nullable=False)
-    perfil = db.Column(db.Enum('Admin', 'Mecanico', 'Recepcionista', name='perfil_enum'), nullable=False, default='Recepcionista')
+    perfil = db.Column(
+        db.Enum('Admin', 'Vendedor', 'Mecanico', 'Recepcionista', name='perfil_enum'),
+        nullable=False,
+        default='Recepcionista',
+    )
     ativo = db.Column(db.Boolean, default=True)
     mecanico_id = db.Column(
         db.Integer,
@@ -213,9 +225,155 @@ class Usuario(UserMixin, db.Model):
         backref=db.backref('usuario', uselist=False),
         uselist=False
     )
+    vendas = db.relationship('Venda', back_populates='vendedor', lazy=True)
     
     def verificar_senha(self, senha):
         return check_password_hash(self.senha, senha)
     
     def __repr__(self):
         return f"<Usuario {self.email}>"
+
+
+class Venda(db.Model):
+    __tablename__ = 'vendas'
+    __table_args__ = (
+        db.CheckConstraint('desconto >= 0', name='ck_vendas_desconto_nao_negativo'),
+        db.CheckConstraint('total >= 0', name='ck_vendas_total_nao_negativo'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    cliente_id = db.Column(
+        db.Integer,
+        db.ForeignKey('clientes.id', ondelete='RESTRICT'),
+        nullable=False,
+        index=True,
+    )
+    veiculo_id = db.Column(
+        db.Integer,
+        db.ForeignKey('veiculos.id', ondelete='RESTRICT'),
+        nullable=False,
+        index=True,
+    )
+    vendedor_id = db.Column(
+        db.Integer,
+        db.ForeignKey('usuarios.id', ondelete='RESTRICT'),
+        nullable=False,
+        index=True,
+    )
+    data = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    desconto = db.Column(db.Numeric(10, 2), nullable=False, default=Decimal('0.00'))
+    status = db.Column(
+        db.Enum('aberta', 'paga', 'cancelada', name='status_venda_enum'),
+        nullable=False,
+        default='aberta',
+    )
+    total = db.Column(db.Numeric(10, 2), nullable=False, default=Decimal('0.00'))
+
+    cliente = db.relationship('Cliente')
+    veiculo = db.relationship('Veiculo')
+    vendedor = db.relationship('Usuario', back_populates='vendas')
+    itens = db.relationship(
+        'ItemVenda',
+        back_populates='venda',
+        cascade='all, delete-orphan',
+        lazy=True,
+    )
+    pagamentos = db.relationship(
+        'Pagamento',
+        back_populates='venda',
+        cascade='all, delete-orphan',
+        lazy=True,
+        order_by='Pagamento.data, Pagamento.id',
+    )
+    lancamentos_financeiros = db.relationship(
+        'Financeiro',
+        back_populates='venda',
+        lazy=True,
+    )
+
+    @property
+    def valor_restante(self):
+        total_pago = sum(
+            (pagamento.valor for pagamento in self.pagamentos),
+            start=Decimal('0.00'),
+        )
+        return max(Decimal('0.00'), (self.total or Decimal('0.00')) - total_pago)
+
+    def __repr__(self):
+        return f"<Venda #{self.id} - {self.status}>"
+
+
+class ItemVenda(db.Model):
+    __tablename__ = 'itens_venda'
+    __table_args__ = (
+        db.CheckConstraint('quantidade > 0', name='ck_itens_venda_quantidade_positiva'),
+        db.CheckConstraint(
+            'preco_unitario >= 0',
+            name='ck_itens_venda_preco_nao_negativo',
+        ),
+        db.CheckConstraint(
+            "(tipo = 'peca' AND peca_id IS NOT NULL AND servico_id IS NULL) OR "
+            "(tipo = 'servico' AND servico_id IS NOT NULL AND peca_id IS NULL)",
+            name='ck_itens_venda_tipo_referencia',
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    venda_id = db.Column(
+        db.Integer,
+        db.ForeignKey('vendas.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    tipo = db.Column(db.Enum('peca', 'servico', name='tipo_item_venda_enum'), nullable=False)
+    peca_id = db.Column(
+        db.Integer,
+        db.ForeignKey('pecas.id', ondelete='RESTRICT'),
+        nullable=True,
+    )
+    servico_id = db.Column(
+        db.Integer,
+        db.ForeignKey('servicos.id', ondelete='RESTRICT'),
+        nullable=True,
+    )
+    quantidade = db.Column(db.Integer, nullable=False)
+    preco_unitario = db.Column(db.Numeric(10, 2), nullable=False)
+
+    venda = db.relationship('Venda', back_populates='itens')
+    peca = db.relationship('Peca')
+    servico = db.relationship('Servico')
+
+    @property
+    def subtotal(self):
+        return self.quantidade * self.preco_unitario
+
+
+class Pagamento(db.Model):
+    __tablename__ = 'pagamentos'
+    __table_args__ = (
+        db.CheckConstraint('valor > 0', name='ck_pagamentos_valor_positivo'),
+        db.CheckConstraint('parcelas BETWEEN 1 AND 12', name='ck_pagamentos_parcelas'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    venda_id = db.Column(
+        db.Integer,
+        db.ForeignKey('vendas.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    valor = db.Column(db.Numeric(10, 2), nullable=False)
+    metodo = db.Column(
+        db.Enum(
+            'dinheiro',
+            'pix',
+            'cartao_credito',
+            'cartao_debito',
+            name='metodo_pagamento_venda_enum',
+        ),
+        nullable=False,
+    )
+    parcelas = db.Column(db.Integer, nullable=False, default=1)
+    data = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    venda = db.relationship('Venda', back_populates='pagamentos')

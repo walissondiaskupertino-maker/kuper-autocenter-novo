@@ -66,6 +66,36 @@ def create_app(test_config=None):
 
         click.echo('Administrador criado com sucesso.')
 
+    @app.cli.command('create-vendedor')
+    @click.option('--email', prompt=True)
+    @click.option('--nome', prompt='Nome')
+    @click.password_option('--password', confirmation_prompt=True)
+    def create_vendedor_command(email, nome, password):
+        """Create a seller account from a local terminal."""
+        from .models import Usuario
+
+        email = email.strip().lower()
+        with app.app_context():
+            if Usuario.query.filter_by(email=email).first():
+                raise click.ClickException('Este e-mail já está cadastrado.')
+
+            db.session.add(Usuario(
+                nome=nome.strip(),
+                email=email,
+                senha=generate_password_hash(password),
+                perfil='Vendedor',
+                ativo=True,
+            ))
+            try:
+                db.session.commit()
+            except IntegrityError as error:
+                db.session.rollback()
+                raise click.ClickException(
+                    'Não foi possível criar o vendedor; verifique os dados e tente novamente.'
+                ) from error
+
+        click.echo('Vendedor criado com sucesso.')
+
     @app.cli.command('link-mechanic')
     @click.option('--email', prompt=True)
     @click.option('--mecanico-id', type=click.IntRange(min=1), prompt='ID do mecânico')
@@ -121,6 +151,7 @@ def create_app(test_config=None):
     from .routes.financeiro import financeiro_bp
     from .routes.relatorios import relatorios_bp
     from .routes.auth import auth_bp
+    from .routes.vendas import vendas_bp
 
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(clientes_bp, url_prefix='/clientes')
@@ -132,5 +163,6 @@ def create_app(test_config=None):
     app.register_blueprint(financeiro_bp, url_prefix='/financeiro')
     app.register_blueprint(relatorios_bp, url_prefix='/relatorios')
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(vendas_bp, url_prefix='/vendas')
 
     return app

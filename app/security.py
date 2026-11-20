@@ -1,3 +1,5 @@
+from functools import wraps
+
 from flask import abort, request
 from flask_login import current_user
 from app.extensions import login_manager
@@ -28,7 +30,27 @@ ROLE_ENDPOINTS = {
         'ordens_servico.detalhes',
         'ordens_servico.atualizar_diagnostico',
     },
+    'Vendedor': {
+        'auth.logout',
+        'vendas.lista',
+        'vendas.nova_venda',
+        'vendas.detalhe',
+        'vendas.registrar_pagamento',
+    },
 }
+
+
+def role_required(*perfis):
+    def decorator(view):
+        @wraps(view)
+        def wrapped(*args, **kwargs):
+            if not current_user.is_authenticated:
+                return login_manager.unauthorized()
+            if current_user.perfil not in perfis:
+                abort(403)
+            return view(*args, **kwargs)
+        return wrapped
+    return decorator
 
 
 def protect_application_route():

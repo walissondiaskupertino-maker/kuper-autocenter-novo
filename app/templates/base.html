@@ -14,7 +14,7 @@
 <body>
 
     {% if current_user.is_authenticated %}
-        {% set home_url = url_for('dashboard.index') if current_user.perfil == 'Admin' else url_for('clientes.lista') if current_user.perfil == 'Recepcionista' else url_for('ordens_servico.lista') %}
+        {% set home_url = url_for('dashboard.index') if current_user.perfil == 'Admin' else url_for('clientes.lista') if current_user.perfil == 'Recepcionista' else url_for('vendas.lista') if current_user.perfil == 'Vendedor' else url_for('ordens_servico.lista') %}
     {% else %}
         {% set home_url = url_for('auth.login') %}
     {% endif %}
@@ -38,6 +38,7 @@
             {% set is_admin = current_user.is_authenticated and current_user.perfil == 'Admin' %}
             {% set is_receptionist = current_user.is_authenticated and current_user.perfil == 'Recepcionista' %}
             {% set is_mechanic = current_user.is_authenticated and current_user.perfil == 'Mecanico' %}
+            {% set is_seller = current_user.is_authenticated and current_user.perfil == 'Vendedor' %}
             <div class="nav-section">Principal</div>
             {% if is_admin %}
             <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" {% if request.endpoint == 'dashboard.index' %}aria-current="page"{% endif %}>
@@ -68,6 +69,11 @@
             {% if is_admin %}
             <div class="nav-section">Gestão</div>
             <a href="{{ url_for('financeiro.lista') }}" class="nav-link {% if request.blueprint == 'financeiro' %}active{% endif %}"><i class="bi bi-cash-stack"></i><span>Financeiro</span></a>
+            {% endif %}
+
+            {% if is_admin or is_seller %}
+            <div class="nav-section">Comercial</div>
+            <a href="{{ url_for('vendas.lista') }}" class="nav-link {% if request.blueprint == 'vendas' %}active{% endif %}"><i class="bi bi-receipt"></i><span>Vendas</span></a>
             {% endif %}
         </nav>
 

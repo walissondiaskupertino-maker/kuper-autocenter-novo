@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Nova venda - Kuper Autocenter{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-receipt"></i> Nova venda</h2>
+        <p class="text-muted mb-0">Valores e itens são conferidos pelo servidor antes de salvar.</p>
+    </div>
+    <a href="{{ url_for('vendas.lista') }}" class="btn btn-outline-secondary">Voltar às vendas</a>
+</div>
+
+{% if not clientes %}
+<div class="alert alert-warning">
+    Cadastre um cliente antes de abrir uma venda.
+    <a href="{{ url_for('clientes.novo') }}" class="alert-link">Cadastrar cliente</a>
+</div>
+{% elif not veiculos %}
+<div class="alert alert-warning">
+    Cadastre um veículo antes de abrir uma venda.
+    <a href="{{ url_for('veiculos.novo') }}" class="alert-link">Cadastrar veículo</a>
+</div>
+{% endif %}
+
+<form method="POST" id="form-venda">
+    {{ form.hidden_tag() }}
+    <div class="card mb-4">
+        <div class="card-header fw-semibold">Cliente e veículo</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    {{ form.cliente_id.label(class="form-label") }}
+                    {{ form.cliente_id(class="form-select", id="cliente_id") }}
+                    {% for error in form.cliente_id.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-md-6">
+                    {{ form.veiculo_id.label(class="form-label") }}
+                    <select id="veiculo_id" name="veiculo_id" class="form-select" required>
+                        <option value="0">Selecione um veículo</option>
+                        {% for veiculo in veiculos %}
+                        <option value="{{ veiculo.id }}" data-cliente-id="{{ veiculo.cliente_id }}"
+                                {% if form.veiculo_id.data == veiculo.id %}selected{% endif %}>
+                            {{ veiculo.placa }} - {{ veiculo.marca }} {{ veiculo.modelo }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% for error in form.veiculo_id.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">Itens da venda</span>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="adicionar-item">
+                <i class="bi bi-plus-lg"></i> Adicionar item
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Peça ou serviço</th>
+                            <th style="width: 120px">Quantidade</th>
+                            <th class="text-end">Subtotal</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="itens-venda"></tbody>
+                </table>
+            </div>
+            <p id="sem-itens" class="text-muted text-center mb-0">Adicione ao menos um item à venda.</p>
+            {% for error in form.desconto.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+    </div>
+
+    <div class="row justify-content-end">
+        <div class="col-lg-5">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal</span><strong id="subtotal-venda">R$ 0,00</strong>
+                    </div>
+                    <div class="mb-3">
+                        {{ form.desconto.label(class="form-label") }}
+                        {{ form.desconto(class="form-control", id="desconto", min="0", step="0.01", inputmode="decimal", data_decimal="true", placeholder="0,00") }}
+                    </div>
+                    <div class="d-flex justify-content-between border-top pt-3">
+                        <span class="fs-5 fw-semibold">Total geral</span>
+                        <strong class="fs-4 text-primary" id="total-venda">R$ 0,00</strong>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 mt-3"
+                            {% if not clientes or not veiculos %}disabled{% endif %}>
+                        <i class="bi bi-check2-circle"></i> Criar venda
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<template id="modelo-linha-item">
+    <tr class="linha-item">
+        <td>
+            <select name="tipo_item[]" class="form-select tipo-item" required>
+                <option value="">Selecione</option>
+                <option value="peca">Peça</option>
+                <option value="servico">Serviço</option>
+            </select>
+        </td>
+        <td>
+            <select name="item_id[]" class="form-select item-catalogo" required disabled>
+                <option value="">Selecione primeiro o tipo</option>
+                {% for peca in pecas %}
+                <option value="{{ peca.id }}" data-tipo="peca" data-preco="{{ peca.preco_venda }}">
+                    Peça: {{ peca.descricao }} (estoque: {{ peca.estoque_atual }})
+                </option>
+                {% endfor %}
+                {% for servico in servicos %}
+                <option value="{{ servico.id }}" data-tipo="servico" data-preco="{{ servico.preco_base }}">
+                    Serviço: {{ servico.nome }}
+                </option>
+                {% endfor %}
+            </select>
+        </td>
+        <td><input type="number" name="quantidade[]" class="form-control quantidade-item" value="1" min="1" step="1" required></td>
+        <td class="text-end subtotal-item">R$ 0,00</td>
+        <td class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-danger remover-item" aria-label="Remover item">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+<script id="itens-iniciais" type="application/json">{{ itens_iniciais|tojson }}</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/vendas.js') }}"></script>
+{% endblock %}

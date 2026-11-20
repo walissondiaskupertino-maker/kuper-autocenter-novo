@@ -1,4 +1,4 @@
-from flask import Blueprint, send_file, render_template
+from flask import Blueprint, send_file, render_template, request
 from flask_login import login_required
 from app.models import OrdemServico, Cliente, Veiculo, Financeiro, Peca
 from app.extensions import db
@@ -8,6 +8,34 @@ import io
 import os
 
 relatorios_bp = Blueprint('relatorios', __name__)
+
+
+def _finance_report_data():
+    tipo = request.args.get('tipo', '')
+    if tipo not in ('Entrada', 'Saida'):
+        tipo = ''
+
+    query = Financeiro.query
+    if tipo:
+        query = query.filter_by(tipo=tipo)
+    lancamentos = query.order_by(
+        Financeiro.data_movimentacao.desc(),
+        Financeiro.id.desc(),
+    ).all()
+    total_entradas = sum(
+        (lanc.valor for lanc in lancamentos if lanc.tipo == 'Entrada'),
+        start=0,
+    )
+    total_saidas = sum(
+        (lanc.valor for lanc in lancamentos if lanc.tipo == 'Saida'),
+        start=0,
+    )
+    return tipo, lancamentos, total_entradas, total_saidas
+
+
+def _format_currency_br(value):
+    return f'R$ {value:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+
 
 # ============ PDF - Lista de OS ============
 @relatorios_bp.route('/os/pdf')
@@ -228,78 +256,186 @@ def estoque_pdf():
 @relatorios_bp.route('/financeiro/excel')
 @login_required
 def financeiro_excel():
-    try:
-        from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Alignment
-        
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Financeiro"
-        
-        ws['A1'] = "RELATÓRIO FINANCEIRO - KUPER AUTOCENTER"
-        ws.merge_cells('A1:F1')
-        ws['A1'].font = Font(bold=True, size=14, color="FFFFFF")
-        ws['A1'].fill = PatternFill(start_color="1e293b", end_color="1e293b", fill_type="solid")
-        ws['A1'].alignment = Alignment(horizontal='center')
-        
-        ws['A3'] = "Data"
-        ws['B3'] = "Tipo"
-        ws['C3'] = "Descrição"
-        ws['D3'] = "Categoria"
-        ws['E3'] = "Valor (R$)"
-        ws['F3'] = "Forma Pagamento"
-        
-        header_fill = PatternFill(start_color="3b82f6", end_color="3b82f6", fill_type="solid")
-        for cell in ws[3]:
-            cell.fill = header_fill
-            cell.font = Font(bold=True, color="FFFFFF")
-        
-        lancamentos = Financeiro.query.order_by(Financeiro.data_movimentacao.desc()).all()
-        row = 4
-        for lanc in lancamentos:
-            ws[f'A{row}'] = lanc.data_movimentacao.strftime('%d/%m/%Y %H:%M')
-            ws[f'B{row}'] = lanc.tipo
-            ws[f'C{row}'] = lanc.descricao
-            ws[f'D{row}'] = lanc.categoria or '-'
-            ws[f'E{row}'] = float(lanc.valor)
-            ws[f'F{row}'] = lanc.forma_pagamento or '-'
-            
-            if lanc.tipo == 'Entrada':
-                ws[f'E{row}'].font = Font(color="008000", bold=True)
-            else:
-                ws[f'E{row}'].font = Font(color="FF0000", bold=True)
-            row += 1
-        
-        total_entradas = float(db.session.query(func.coalesce(func.sum(Financeiro.valor), 0)).filter_by(tipo='Entrada').scalar() or 0)
-        total_saidas = float(db.session.query(func.coalesce(func.sum(Financeiro.valor), 0)).filter_by(tipo='Saida').scalar() or 0)
-        
-        ws[f'A{row+2}'] = "TOTAL ENTRADAS:"
-        ws[f'A{row+2}'].font = Font(bold=True)
-        ws[f'E{row+2}'] = total_entradas
-        ws[f'E{row+2}'].font = Font(bold=True, color="008000", size=12)
-        
-        ws[f'A{row+3}'] = "TOTAL SAÍDAS:"
-        ws[f'A{row+3}'].font = Font(bold=True)
-        ws[f'E{row+3}'] = total_saidas
-        ws[f'E{row+3}'].font = Font(bold=True, color="FF0000", size=12)
-        
-        ws[f'A{row+4}'] = "SALDO FINAL:"
-        ws[f'A{row+4}'].font = Font(bold=True, size=12)
-        ws[f'E{row+4}'] = total_entradas - total_saidas
-        ws[f'E{row+4}'].font = Font(bold=True, size=14, color="0000FF")
-        
-        buffer = io.BytesIO()
-        wb.save(buffer)
-        buffer.seek(0)
-        
-        return send_file(
-            buffer,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            as_attachment=True,
-            download_name=f'financeiro_{datetime.now().strftime("%Y%m%d")}.xlsx'
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+
+    tipo, lancamentos, total_entradas, total_saidas = _finance_report_data()
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Financeiro'
+
+    ws.merge_cells('A1:F1')
+    ws['A1'] = 'RELATÓRIO FINANCEIRO - KUPER AUTOCENTER'
+    ws['A1'].font = Font(bold=True, size=14, color='FFFFFF')
+    ws['A1'].fill = PatternFill(
+        start_color='1e293b',
+        end_color='1e293b',
+        fill_type='solid',
+    )
+    ws['A1'].alignment = Alignment(horizontal='center')
+    ws['A2'] = f'Filtro: {tipo or "Todos os lançamentos"}'
+    headers = ['Data', 'Tipo', 'Descrição', 'Categoria', 'Forma de pagamento', 'Valor (R$)']
+    ws.append(headers)
+
+    header_row = 3
+    header_fill = PatternFill(
+        start_color='3b82f6',
+        end_color='3b82f6',
+        fill_type='solid',
+    )
+    for cell in ws[header_row]:
+        cell.fill = header_fill
+        cell.font = Font(bold=True, color='FFFFFF')
+
+    first_data_row = header_row + 1
+    for lanc in lancamentos:
+        row = ws.max_row + 1
+        ws.cell(row, 1, lanc.data_movimentacao)
+        ws.cell(row, 1).number_format = 'dd/mm/yyyy hh:mm'
+        ws.cell(row, 2, lanc.tipo)
+        ws.cell(row, 3, lanc.descricao)
+        ws.cell(row, 4, lanc.categoria or '-')
+        ws.cell(row, 5, lanc.forma_pagamento or '-')
+        value_cell = ws.cell(row, 6, float(lanc.valor))
+        value_cell.number_format = '"R$" #,##0.00'
+        value_cell.font = Font(
+            color='008000' if lanc.tipo == 'Entrada' else 'FF0000',
+            bold=True,
         )
-    except Exception as e:
-        return f"Erro ao gerar Excel: {str(e)}", 500
+        for column in range(2, 6):
+            ws.cell(row, column).data_type = 's'
+
+    last_data_row = ws.max_row
+    if lancamentos:
+        ws.auto_filter.ref = f'A{header_row}:F{last_data_row}'
+    else:
+        ws.cell(first_data_row, 1, 'Nenhum lançamento encontrado.')
+        ws.merge_cells(
+            start_row=first_data_row,
+            start_column=1,
+            end_row=first_data_row,
+            end_column=6,
+        )
+
+    summary_row = ws.max_row + 2
+    summary = (
+        ('TOTAL ENTRADAS:', float(total_entradas), '008000'),
+        ('TOTAL SAÍDAS:', float(total_saidas), 'FF0000'),
+        ('SALDO FINAL:', float(total_entradas - total_saidas), '1e40af'),
+    )
+    for offset, (label, value, color) in enumerate(summary):
+        ws.cell(summary_row + offset, 1, label).font = Font(bold=True)
+        value_cell = ws.cell(summary_row + offset, 6, value)
+        value_cell.number_format = '"R$" #,##0.00'
+        value_cell.font = Font(bold=True, color=color)
+
+    for column, width in {'A': 20, 'B': 14, 'C': 42, 'D': 24, 'E': 24, 'F': 18}.items():
+        ws.column_dimensions[column].width = width
+    ws.freeze_panes = f'A{first_data_row}'
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    suffix = f'_{tipo.lower()}' if tipo else ''
+    return send_file(
+        buffer,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=f'financeiro{suffix}_{datetime.now().strftime("%Y%m%d")}.xlsx',
+    )
+
+
+@relatorios_bp.route('/financeiro/pdf')
+@login_required
+def financeiro_pdf():
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.platypus import (
+        Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
+    )
+    from xml.sax.saxutils import escape
+
+    tipo, lancamentos, total_entradas, total_saidas = _finance_report_data()
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        rightMargin=1.5 * cm,
+        leftMargin=1.5 * cm,
+        topMargin=1.5 * cm,
+        bottomMargin=1.5 * cm,
+        title='Relatório Financeiro - Kuper Autocenter',
+    )
+    styles = getSampleStyleSheet()
+    cell_style = ParagraphStyle(
+        'FinanceCell',
+        parent=styles['BodyText'],
+        fontSize=8,
+        leading=10,
+    )
+    elements = [
+        Paragraph('RELATÓRIO FINANCEIRO - KUPER AUTOCENTER', styles['Title']),
+        Paragraph(
+            f'Filtro: {escape(tipo or "Todos os lançamentos")} | '
+            f'Gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}',
+            styles['Normal'],
+        ),
+        Spacer(1, 0.5 * cm),
+    ]
+    data = [[
+        'Data', 'Tipo', 'Descrição', 'Categoria', 'Forma de pagamento', 'Valor',
+    ]]
+    for lanc in lancamentos:
+        data.append([
+            lanc.data_movimentacao.strftime('%d/%m/%Y %H:%M')
+            if lanc.data_movimentacao else '-',
+            lanc.tipo,
+            Paragraph(escape(lanc.descricao or '-'), cell_style),
+            Paragraph(escape(lanc.categoria or '-'), cell_style),
+            Paragraph(escape(lanc.forma_pagamento or '-'), cell_style),
+            _format_currency_br(lanc.valor),
+        ])
+    if not lancamentos:
+        data.append(['Nenhum lançamento encontrado.', '', '', '', '', ''])
+
+    table = Table(
+        data,
+        repeatRows=1,
+        colWidths=[3.0 * cm, 2.2 * cm, 7.2 * cm, 4.2 * cm, 4.2 * cm, 3.2 * cm],
+    )
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e293b')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#cbd5e1')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f1f5f9')]),
+        ('ALIGN', (-1, 1), (-1, -1), 'RIGHT'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.extend([
+        table,
+        Spacer(1, 0.5 * cm),
+        Paragraph(f'Total de entradas: {_format_currency_br(total_entradas)}', styles['Normal']),
+        Paragraph(f'Total de saídas: {_format_currency_br(total_saidas)}', styles['Normal']),
+        Paragraph(
+            f'Saldo final: {_format_currency_br(total_entradas - total_saidas)}',
+            styles['Heading3'],
+        ),
+    ])
+    doc.build(elements)
+    buffer.seek(0)
+    suffix = f'_{tipo.lower()}' if tipo else ''
+    return send_file(
+        buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f'financeiro{suffix}_{datetime.now().strftime("%Y%m%d")}.pdf',
+    )
 
 # ============ WORD - Clientes ============
 @relatorios_bp.route('/clientes/word')

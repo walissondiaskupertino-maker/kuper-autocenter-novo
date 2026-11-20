@@ -9,6 +9,7 @@ Sistema web para gestão de oficina mecânica desenvolvido com Flask, SQLAlchemy
 - Gestão de mecânicos, peças e serviços
 - Ordens de serviço com serviços e peças
 - Controle financeiro e movimentação de estoque
+- Vendas com pagamentos parciais integrados ao financeiro
 - Relatórios em PDF
 - Autenticação com perfis de usuário
 
@@ -90,6 +91,21 @@ ele cria e popula tabelas de exemplo e não deve ser executado em um banco exist
 Para instalações existentes, faça backup e aplique uma única vez a migração
 correspondente ao banco em `migrations/mysql/` ou `migrations/sqlite/` antes de
 atualizar o código. `init-db` cria tabelas ausentes, mas não altera tabelas existentes.
+Para ativar Vendas, aplique `20261120_add_sales_module.sql` no banco utilizado
+pela aplicação. A migração amplia os perfis de usuário e cria as tabelas de vendas,
+itens e pagamentos, além do vínculo financeiro; ela não apaga nem recria dados.
+Não execute novamente uma migração já aplicada.
+
+O perfil Vendedor é provisionado no terminal, e não pelo cadastro público:
+
+```powershell
+flask --app run create-vendedor
+```
+
+O vendedor acessa somente as próprias vendas. Cada recebimento, inclusive parcial,
+gera uma entrada no Financeiro. O estoque de peças é baixado uma única vez, ao
+quitar a venda, após uma nova conferência de disponibilidade. O cadastro manual
+do Financeiro permanece disponível apenas para saídas.
 
 Após cadastrar a conta com perfil Mecânico e criar seu registro no módulo
 Mecânicos, vincule ambos pelo terminal local usando o e-mail da conta e o ID do
@@ -139,6 +155,8 @@ Padrões de interface:
 - Os cadastros de clientes, veículos, mecânicos, peças e serviços oferecem busca
   e filtros nas listagens; os campos de documento, telefone, placa e valores
   também normalizam a entrada e validam os dados no servidor.
+- O módulo Financeiro oferece exportação em PDF e Excel; ambos respeitam o filtro
+  de entradas/saídas selecionado na tela.
 
 ## Segurança
 
@@ -147,4 +165,5 @@ Padrões de interface:
 - Crie administradores somente pelo comando CLI `create-admin`.
 - As permissões são verificadas no servidor por perfil; a navegação também oculta módulos não autorizados.
 - Aplique a migração de vínculo de mecânicos antes de atualizar uma instalação existente.
+- Aplique a migração do módulo de vendas antes de iniciar uma versão que contenha as novas rotas.
 - Habilite HTTPS em produção.

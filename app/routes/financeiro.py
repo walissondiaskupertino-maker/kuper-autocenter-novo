@@ -9,6 +9,8 @@ financeiro_bp = Blueprint('financeiro', __name__)
 @financeiro_bp.route('/')
 def lista():
     tipo = request.args.get('tipo', '')
+    if tipo not in ('Entrada', 'Saida'):
+        tipo = ''
     query = Financeiro.query.order_by(Financeiro.data_movimentacao.desc())
     if tipo:
         query = query.filter_by(tipo=tipo)
@@ -42,6 +44,9 @@ def novo():
 @financeiro_bp.route('/<int:id>/excluir', methods=['POST'])
 def excluir(id):
     lanc = Financeiro.query.get_or_404(id)
+    if lanc.venda_id is not None:
+        flash('Recebimentos vinculados a vendas não podem ser excluídos.', 'danger')
+        return redirect(url_for('financeiro.lista'))
     db.session.delete(lanc)
     db.session.commit()
     flash('Lançamento excluído!', 'success')

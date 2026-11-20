@@ -223,9 +223,44 @@ class DiagnosticoForm(FlaskForm):
 
 
 class FinanceiroForm(FlaskForm):
-    tipo = SelectField('Tipo', choices=[('Entrada', 'Entrada'), ('Saida', 'Saída')], validators=[DataRequired()])
+    tipo = SelectField('Tipo', choices=[('Saida', 'Saída')], validators=[DataRequired()])
     descricao = StringField('Descrição', validators=[DataRequired(), Length(max=255)])
     valor = DecimalField('Valor', places=2, validators=[DataRequired()])
     categoria = StringField('Categoria', validators=[Optional(), Length(max=80)])
     forma_pagamento = StringField('Forma de Pagamento', validators=[Optional(), Length(max=50)])
     submit = SubmitField('Salvar')
+
+
+class VendaForm(FlaskForm):
+    cliente_id = SelectField('Cliente', coerce=int, validators=[DataRequired()])
+    veiculo_id = SelectField('Veículo', coerce=int, validators=[DataRequired()])
+    desconto = DecimalCommaField(
+        'Desconto (R$)',
+        places=2,
+        validators=[Optional(), NumberRange(min=0)],
+    )
+    submit = SubmitField('Criar venda')
+
+
+class PagamentoForm(FlaskForm):
+    valor = DecimalCommaField(
+        'Valor recebido (R$)',
+        places=2,
+        validators=[DataRequired(), NumberRange(min=0)],
+    )
+    metodo = SelectField(
+        'Forma de pagamento',
+        choices=[
+            ('dinheiro', 'Dinheiro'),
+            ('pix', 'Pix'),
+            ('cartao_credito', 'Cartão de crédito'),
+            ('cartao_debito', 'Cartão de débito'),
+        ],
+        validators=[DataRequired()],
+    )
+    parcelas = IntegerField(
+        'Parcelas',
+        default=1,
+        validators=[Optional(), NumberRange(min=1, max=12)],
+    )
+    submit = SubmitField('Registrar pagamento')
