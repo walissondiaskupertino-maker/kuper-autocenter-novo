@@ -11,7 +11,7 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email')
+        email = (request.form.get('email') or '').strip().lower()
         senha = request.form.get('senha')
         usuario = Usuario.query.filter_by(email=email).first()
         

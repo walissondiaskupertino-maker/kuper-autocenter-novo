@@ -6,12 +6,11 @@ from app.extensions import db
 
 @pytest.fixture
 def app():
-    application = create_app()
-    application.config.update(
-        TESTING=True,
-        WTF_CSRF_ENABLED=False,
-        SQLALCHEMY_DATABASE_URI='sqlite://'
-    )
+    application = create_app({
+        'TESTING': True,
+        'WTF_CSRF_ENABLED': False,
+        'SQLALCHEMY_DATABASE_URI': 'sqlite://'
+    })
     with application.app_context():
         db.create_all()
 

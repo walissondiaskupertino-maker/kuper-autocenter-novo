@@ -1,4 +1,6 @@
 from app.models import Usuario
+from app.extensions import db
+from werkzeug.security import generate_password_hash
 
 
 def test_operational_routes_redirect_anonymous_users_to_login(client):
@@ -59,6 +61,27 @@ def test_csrf_rejects_post_without_token(app, client):
     })
 
     assert response.status_code == 400
+
+
+def test_login_normalizes_email(app, client):
+    with app.app_context():
+        usuario = Usuario(
+            nome='Pessoa Teste',
+            email='teste@example.com',
+            senha=generate_password_hash('senha123'),
+            perfil='Recepcionista',
+            ativo=True,
+        )
+        db.session.add(usuario)
+        db.session.commit()
+
+    response = client.post('/auth/login', data={
+        'email': '  TESTE@EXAMPLE.COM ',
+        'senha': 'senha123',
+    })
+
+    assert response.status_code == 302
+    assert response.headers['Location'].endswith('/clientes/')
 
 
 def test_create_admin_cli_creates_admin_with_hashed_password(app):

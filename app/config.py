@@ -4,7 +4,12 @@ from datetime import timedelta
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
 
-load_dotenv()
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DOTENV_PATH = os.path.join(PROJECT_ROOT, '.env')
+if not os.path.isfile(DOTENV_PATH):
+    DOTENV_PATH = os.path.join(os.path.dirname(__file__), '.env')
+
+load_dotenv(DOTENV_PATH)
 
 class Config:
     APP_ENV = os.getenv('APP_ENV', 'development').lower()

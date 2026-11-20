@@ -59,7 +59,11 @@ DB_PORT=3306
 DB_NAME=kuper_autocenter
 ```
 
-As variáveis podem ser armazenadas em um arquivo `.env` na raiz do projeto.
+As variáveis podem ser armazenadas em um arquivo `.env` na raiz do projeto
+(copie `.env.example` e substitua os valores de exemplo). Para compatibilidade
+com instalações anteriores, se o arquivo da raiz não existir, o sistema também
+procura `app/.env`. A mesma configuração é escolhida independentemente da pasta
+de onde o Flask for iniciado; variáveis de ambiente do sistema têm prioridade.
 Em produção, defina `APP_ENV=production` e configure `SECRET_KEY` junto com
 `DATABASE_URL` ou `DB_USER` e `DB_PASSWORD`.
 
@@ -72,7 +76,9 @@ flask --app run create-admin
 O comando solicita e confirma a senha sem exibi-la. Não há rota web pública
 para criar administradores.
 
-3. Crie as tabelas ausentes. O comando preserva tabelas existentes:
+3. Crie somente as tabelas ausentes. O comando preserva as tabelas e os dados
+existentes; execute-o no mesmo ambiente e com a mesma configuração de banco usada
+para iniciar o servidor:
 
 ```powershell
 flask --app run init-db

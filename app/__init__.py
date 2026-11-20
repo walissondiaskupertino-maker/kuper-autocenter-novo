@@ -8,9 +8,11 @@ from .config import Config
 from .extensions import db, csrf, login_manager
 from .security import protect_application_route
 
-def create_app():
+def create_app(test_config=None):
     app = Flask(__name__)
     app.config.from_object(Config)
+    if test_config is not None:
+        app.config.update(test_config)
     os.makedirs(app.instance_path, exist_ok=True)
 
     db.init_app(app)
