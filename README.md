@@ -131,6 +131,55 @@ As rotas operacionais exigem autenticação. O cadastro web aceita somente os
 perfis Recepcionista e Mecânico; contas de mecânico precisam ser vinculadas a
 um cadastro ativo antes do primeiro acesso.
 
+## Dificuldades encontradas e melhorias implementadas
+
+### Acesso e comunicação com o banco
+
+- O login apresentou erro 500 porque a aplicação consultava `usuarios` em um
+  banco no qual essa tabela não existia. A seleção do arquivo `.env` também
+  variava conforme a pasta de inicialização, podendo direcionar a aplicação para
+  um banco diferente. A configuração passou a localizar o `.env` de forma
+  determinística, e `init-db` cria tabelas ausentes sem apagar as existentes.
+- `app/extensions.py` inicializa SQLAlchemy, CSRF e Flask-Login; as colunas e os
+  perfis de usuário são definidos no modelo `Usuario`, em
+  `app/models/models.py`.
+- Alterações de esquema em bancos existentes devem ser feitas por migrações
+  aditivas, com backup prévio. `init-db` não altera tabelas ou colunas já
+  existentes.
+
+### Cadastros e navegação
+
+- No cadastro de veículos, foram corrigidos o carregamento de clientes, o
+  botão de envio e o tratamento de placas duplicadas.
+- Clientes, veículos, mecânicos, peças e serviços ganharam validação e
+  normalização de dados; as listagens também oferecem filtros.
+- A autorização é verificada no servidor por perfil. Vendedores veem somente
+  as próprias vendas; o cadastro do perfil Vendedor é feito pelo comando CLI,
+  não pelo cadastro público.
+
+### Financeiro, vendas e estoque
+
+- O Financeiro oferece relatórios em PDF e Excel que respeitam o filtro de
+  entradas e saídas.
+- Vendas registram peças e serviços com preços recalculados no servidor.
+  Recebimentos parciais criam entradas financeiras; o estoque é conferido e
+  baixado uma única vez quando a venda é quitada.
+- Recebimentos vinculados a vendas não podem ser excluídos manualmente, para
+  manter o histórico financeiro conciliado com os pagamentos.
+
+### Situação da migração de vendas no MySQL
+
+Em consulta de leitura realizada em 20/11/2026, a tabela `usuarios` e a coluna
+`perfil` existiam no MySQL configurado para a aplicação. O tipo `ENUM` ainda
+permitia somente `Admin`, `Mecanico` e `Recepcionista`; portanto, o perfil
+`Vendedor` e o esquema de vendas ainda não estavam habilitados nessa base.
+
+Antes de iniciar uma versão com vendas, faça backup e aplique uma única vez
+[`migrations/mysql/20261120_add_sales_module.sql`](migrations/mysql/20261120_add_sales_module.sql).
+Essa migração adiciona o perfil e as tabelas necessárias sem recriar as tabelas
+ou apagar os registros existentes. Não a execute novamente se já tiver sido
+aplicada.
+
 ## Testes
 
 Instale as dependências do arquivo `requirements.txt` e execute:
