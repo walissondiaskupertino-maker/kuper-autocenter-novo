@@ -11,6 +11,28 @@
 
 <div class="card">
     <div class="card-body">
+        <form method="GET" class="row g-2 mb-3">
+            <div class="col-md">
+                <input type="search" name="busca" class="form-control" placeholder="Placa, marca, modelo ou cliente" value="{{ busca }}" aria-label="Buscar veículos">
+            </div>
+            <div class="col-md-4">
+                <select name="cliente_id" class="form-select" aria-label="Filtrar por cliente">
+                    <option value="">Todos os clientes</option>
+                    {% for cliente in clientes %}
+                    <option value="{{ cliente.id }}" {% if cliente_id == cliente.id %}selected{% endif %}>{{ cliente.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-secondary">Filtrar</button>
+            </div>
+            {% if busca or cliente_id %}
+            <div class="col-auto">
+                <a href="{{ url_for('veiculos.lista') }}" class="btn btn-outline-secondary">Limpar</a>
+            </div>
+            {% endif %}
+        </form>
+
         {% if veiculos %}
         <div class="table-responsive">
             <table class="table table-hover">

@@ -1,14 +1,33 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from app.extensions import db
 from app.models import Servico
 from app.forms import ServicoForm
+from sqlalchemy import or_
 
 servicos_bp = Blueprint('servicos', __name__)
 
 @servicos_bp.route('/')
 def lista():
-    servicos = Servico.query.order_by(Servico.nome).all()
-    return render_template('servicos/lista.html', servicos=servicos)
+    busca = request.args.get('busca', '').strip()[:100]
+    status = request.args.get('status', '')
+    query = Servico.query
+    if busca:
+        termo = f'%{busca}%'
+        query = query.filter(or_(
+            Servico.nome.ilike(termo),
+            Servico.descricao.ilike(termo),
+        ))
+    if status == 'ativo':
+        query = query.filter(Servico.ativo.is_(True))
+    elif status == 'inativo':
+        query = query.filter(Servico.ativo.is_(False))
+    servicos = query.order_by(Servico.nome).all()
+    return render_template(
+        'servicos/lista.html',
+        servicos=servicos,
+        busca=busca,
+        status=status,
+    )
 
 @servicos_bp.route('/novo', methods=['GET', 'POST'])
 def novo():

@@ -12,22 +12,26 @@
             <div class="mb-3">
                 {{ form.nome.label(class="form-label") }}
                 {{ form.nome(class="form-control") }}
+                {% for error in form.nome.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
             </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
                     {{ form.cpf_cnpj.label(class="form-label") }}
-                    {{ form.cpf_cnpj(class="form-control") }}
+                    {{ form.cpf_cnpj(class="form-control", placeholder="CPF ou CNPJ", maxlength="18", inputmode="numeric", data_mask="document") }}
+                    {% for error in form.cpf_cnpj.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
                 <div class="col-md-6 mb-3">
                     {{ form.telefone.label(class="form-label") }}
-                    {{ form.telefone(class="form-control") }}
+                    {{ form.telefone(class="form-control", placeholder="(11) 99999-9999", maxlength="20", inputmode="tel", data_mask="phone") }}
+                    {% for error in form.telefone.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
             </div>
 
             <div class="mb-3">
                 {{ form.email.label(class="form-label") }}
-                {{ form.email(class="form-control") }}
+                {{ form.email(class="form-control", autocapitalize="none") }}
+                {% for error in form.email.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
             </div>
 
             <div class="mb-3">

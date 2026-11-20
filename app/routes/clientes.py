@@ -1,15 +1,26 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from app.extensions import db
 from app.models import Cliente
 from app.forms import ClienteForm
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_
 
 clientes_bp = Blueprint('clientes', __name__)
 
 @clientes_bp.route('/')
 def lista():
-    clientes = Cliente.query.order_by(Cliente.nome).all()
-    return render_template('clientes/lista.html', clientes=clientes)
+    busca = request.args.get('busca', '').strip()[:100]
+    query = Cliente.query
+    if busca:
+        termo = f'%{busca}%'
+        query = query.filter(or_(
+            Cliente.nome.ilike(termo),
+            Cliente.cpf_cnpj.ilike(termo),
+            Cliente.telefone.ilike(termo),
+            Cliente.email.ilike(termo),
+        ))
+    clientes = query.order_by(Cliente.nome).all()
+    return render_template('clientes/lista.html', clientes=clientes, busca=busca)
 
 @clientes_bp.route('/novo', methods=['GET', 'POST'])
 def novo():

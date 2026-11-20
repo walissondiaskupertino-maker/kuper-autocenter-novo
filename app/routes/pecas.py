@@ -1,14 +1,33 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from app.extensions import db
 from app.models import Peca
 from app.forms import PecaForm
+from sqlalchemy import or_
 
 pecas_bp = Blueprint('pecas', __name__)
 
 @pecas_bp.route('/')
 def lista():
-    pecas = Peca.query.order_by(Peca.descricao).all()
-    return render_template('pecas/lista.html', pecas=pecas)
+    busca = request.args.get('busca', '').strip()[:100]
+    estoque = request.args.get('estoque', '')
+    query = Peca.query
+    if busca:
+        termo = f'%{busca}%'
+        query = query.filter(or_(
+            Peca.codigo.ilike(termo),
+            Peca.descricao.ilike(termo),
+        ))
+    if estoque == 'baixo':
+        query = query.filter(Peca.estoque_atual <= Peca.estoque_minimo)
+    elif estoque == 'normal':
+        query = query.filter(Peca.estoque_atual > Peca.estoque_minimo)
+    pecas = query.order_by(Peca.descricao).all()
+    return render_template(
+        'pecas/lista.html',
+        pecas=pecas,
+        busca=busca,
+        estoque=estoque,
+    )
 
 @pecas_bp.route('/novo', methods=['GET', 'POST'])
 def novo():

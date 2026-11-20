@@ -12,17 +12,20 @@
             <div class="mb-3">
                 {{ form.nome.label(class="form-label") }}
                 {{ form.nome(class="form-control") }}
+                {% for error in form.nome.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
             </div>
 
             <div class="mb-3">
                 {{ form.descricao.label(class="form-label") }}
                 {{ form.descricao(class="form-control", rows=3) }}
+                {% for error in form.descricao.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
             </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
                     {{ form.preco_base.label(class="form-label") }}
-                    {{ form.preco_base(class="form-control", step="0.01") }}
+                    {{ form.preco_base(class="form-control", step="0.01", min="0", inputmode="decimal", placeholder="0,00", data_decimal="true") }}
+                    {% for error in form.preco_base.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
                 <div class="col-md-6 mb-3 d-flex align-items-end">
                     <div class="form-check">

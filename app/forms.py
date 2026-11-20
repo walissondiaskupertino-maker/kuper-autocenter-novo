@@ -1,6 +1,42 @@
+import re
+
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, DecimalField, SelectField, TextAreaField, BooleanField, SubmitField, PasswordField
-from wtforms.validators import DataRequired, Length, NumberRange, Optional, Email
+from wtforms import (
+    StringField, IntegerField, DecimalField, SelectField, TextAreaField,
+    BooleanField, SubmitField, PasswordField,
+)
+from wtforms.validators import (
+    DataRequired, Length, NumberRange, Optional, Email, ValidationError,
+)
+
+
+class DecimalCommaField(DecimalField):
+    def process_formdata(self, valuelist):
+        if valuelist and isinstance(valuelist[0], str) and ',' in valuelist[0]:
+            valuelist = [valuelist[0].replace('.', '').replace(',', '.')]
+        super().process_formdata(valuelist)
+
+
+def _validate_document_digits(_, field):
+    if field.data:
+        digit_count = len(re.sub(r'\D', '', field.data))
+        if digit_count not in (11, 14):
+            raise ValidationError('Informe um CPF com 11 dígitos ou CNPJ com 14 dígitos.')
+
+
+def _validate_cpf_digits(_, field):
+    if field.data and len(re.sub(r'\D', '', field.data)) != 11:
+        raise ValidationError('Informe um CPF com 11 dígitos.')
+
+
+def _validate_phone_digits(_, field):
+    if field.data and len(re.sub(r'\D', '', field.data)) not in (10, 11, 12, 13):
+        raise ValidationError('Informe um telefone com DDD e número válidos.')
+
+
+def _validate_brazilian_plate(_, field):
+    if field.data and not re.fullmatch(r'[A-Z]{3}-?[0-9][A-Z0-9][0-9]{2}', field.data):
+        raise ValidationError('Informe uma placa válida (ABC1234 ou ABC1D23).')
 
 
 class CadastroForm(FlaskForm):
@@ -40,11 +76,31 @@ class CadastroForm(FlaskForm):
 
 
 class ClienteForm(FlaskForm):
-    nome = StringField('Nome', validators=[DataRequired(), Length(max=100)])
-    cpf_cnpj = StringField('CPF/CNPJ', validators=[Optional(), Length(max=20)])
-    telefone = StringField('Telefone', validators=[Optional(), Length(max=20)])
-    email = StringField('E-mail', validators=[Optional(), Email(), Length(max=100)])
-    endereco = TextAreaField('Endereço', validators=[Optional()])
+    nome = StringField(
+        'Nome',
+        filters=[lambda value: value.strip() if value else value],
+        validators=[DataRequired(), Length(max=100)],
+    )
+    cpf_cnpj = StringField(
+        'CPF/CNPJ',
+        filters=[lambda value: value.strip() if value else value],
+        validators=[Optional(), Length(max=20), _validate_document_digits],
+    )
+    telefone = StringField(
+        'Telefone',
+        filters=[lambda value: value.strip() if value else value],
+        validators=[Optional(), Length(max=20), _validate_phone_digits],
+    )
+    email = StringField(
+        'E-mail',
+        filters=[lambda value: value.strip().lower() if value else value],
+        validators=[Optional(), Email(), Length(max=100)],
+    )
+    endereco = TextAreaField(
+        'Endereço',
+        filters=[lambda value: value.strip() if value else value],
+        validators=[Optional()],
+    )
     submit = SubmitField('Salvar')
 
 
@@ -53,39 +109,93 @@ class VeiculoForm(FlaskForm):
     placa = StringField(
         'Placa',
         filters=[lambda value: value.strip().upper() if value else value],
-        validators=[DataRequired(), Length(max=10)]
+        validators=[DataRequired(), Length(max=8), _validate_brazilian_plate],
     )
-    modelo = StringField('Modelo', validators=[DataRequired(), Length(max=50)])
-    marca = StringField('Marca', validators=[DataRequired(), Length(max=50)])
-    ano = IntegerField('Ano', validators=[Optional()])
-    quilometragem = IntegerField('Quilometragem', validators=[Optional(), NumberRange(min=0)])
-    submit = SubmitField('Salvar')
+    modelo = StringField(
+        'Modelo',
+        filters=[lambda value: value.strip() if value else value],
+        validators=[DataRequired(), Length(max=50)],
+    )
+    marca = StringField(
+        'Marca',
+        filters=[lambda value: value.strip() if value else value],
+        validators=[DataRequired(), Length(max=50)],
+    )
+    ano = IntegerField('Ano', validators=[Optional(), NumberRange(min=1886, max=2100)])
+    quilometragem = IntegerField(
+        'Quilometragem',
+        validators=[Optional(), NumberRange(min=0)],
+    )
     submit = SubmitField('Salvar')
 
 
 class MecanicoForm(FlaskForm):
-    nome = StringField('Nome', validators=[DataRequired(), Length(max=100)])
-    cpf = StringField('CPF', validators=[Optional(), Length(max=14)])
-    telefone = StringField('Telefone', validators=[Optional(), Length(max=20)])
-    especialidade = StringField('Especialidade', validators=[Optional(), Length(max=80)])
+    nome = StringField(
+        'Nome',
+        filters=[lambda value: value.strip() if value else value],
+        validators=[DataRequired(), Length(max=100)],
+    )
+    cpf = StringField(
+        'CPF',
+        filters=[lambda value: value.strip() if value else value],
+        validators=[Optional(), Length(max=14), _validate_cpf_digits],
+    )
+    telefone = StringField(
+        'Telefone',
+        filters=[lambda value: value.strip() if value else value],
+        validators=[Optional(), Length(max=20), _validate_phone_digits],
+    )
+    especialidade = StringField(
+        'Especialidade',
+        filters=[lambda value: value.strip() if value else value],
+        validators=[Optional(), Length(max=80)],
+    )
     ativo = BooleanField('Ativo', default=True)
     submit = SubmitField('Salvar')
 
 
 class PecaForm(FlaskForm):
-    codigo = StringField('Código', validators=[Optional(), Length(max=50)])
-    descricao = StringField('Descrição', validators=[DataRequired(), Length(max=150)])
-    preco_custo = DecimalField('Preço de Custo', places=2, validators=[Optional()])
-    preco_venda = DecimalField('Preço de Venda', places=2, validators=[DataRequired()])
+    codigo = StringField(
+        'Código',
+        filters=[lambda value: value.strip().upper() if value else value],
+        validators=[Optional(), Length(max=50)],
+    )
+    descricao = StringField(
+        'Descrição',
+        filters=[lambda value: value.strip() if value else value],
+        validators=[DataRequired(), Length(max=150)],
+    )
+    preco_custo = DecimalCommaField(
+        'Preço de Custo',
+        places=2,
+        validators=[Optional(), NumberRange(min=0)],
+    )
+    preco_venda = DecimalCommaField(
+        'Preço de Venda',
+        places=2,
+        validators=[DataRequired(), NumberRange(min=0)],
+    )
     estoque_atual = IntegerField('Estoque Atual', validators=[Optional(), NumberRange(min=0)])
     estoque_minimo = IntegerField('Estoque Mínimo', validators=[Optional(), NumberRange(min=0)])
     submit = SubmitField('Salvar')
 
 
 class ServicoForm(FlaskForm):
-    nome = StringField('Nome', validators=[DataRequired(), Length(max=100)])
-    descricao = TextAreaField('Descrição', validators=[Optional()])
-    preco_base = DecimalField('Preço Base', places=2, validators=[DataRequired()])
+    nome = StringField(
+        'Nome',
+        filters=[lambda value: value.strip() if value else value],
+        validators=[DataRequired(), Length(max=100)],
+    )
+    descricao = TextAreaField(
+        'Descrição',
+        filters=[lambda value: value.strip() if value else value],
+        validators=[Optional()],
+    )
+    preco_base = DecimalCommaField(
+        'Preço Base',
+        places=2,
+        validators=[DataRequired(), NumberRange(min=0)],
+    )
     ativo = BooleanField('Ativo', default=True)
     submit = SubmitField('Salvar')
 

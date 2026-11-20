@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from app.extensions import db
 from app.models import Cliente, Veiculo
 from app.forms import VeiculoForm
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
 veiculos_bp = Blueprint('veiculos', __name__)
@@ -10,10 +11,30 @@ veiculos_bp = Blueprint('veiculos', __name__)
 
 @veiculos_bp.route('/')
 def lista():
-    veiculos = Veiculo.query.options(
+    busca = request.args.get('busca', '').strip()[:100]
+    cliente_id = request.args.get('cliente_id', type=int)
+    query = Veiculo.query.options(
         joinedload(Veiculo.cliente)
-    ).order_by(Veiculo.placa).all()
-    return render_template('veiculos/lista.html', veiculos=veiculos)
+    )
+    if busca:
+        termo = f'%{busca}%'
+        query = query.filter(or_(
+            Veiculo.placa.ilike(termo),
+            Veiculo.marca.ilike(termo),
+            Veiculo.modelo.ilike(termo),
+            Veiculo.cliente.has(Cliente.nome.ilike(termo)),
+        ))
+    if cliente_id:
+        query = query.filter(Veiculo.cliente_id == cliente_id)
+    veiculos = query.order_by(Veiculo.placa).all()
+    clientes = Cliente.query.order_by(Cliente.nome).all()
+    return render_template(
+        'veiculos/lista.html',
+        veiculos=veiculos,
+        clientes=clientes,
+        busca=busca,
+        cliente_id=cliente_id,
+    )
 
 
 @veiculos_bp.route('/novo', methods=['GET', 'POST'])

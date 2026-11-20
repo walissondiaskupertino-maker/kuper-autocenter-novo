@@ -11,6 +11,27 @@
 
 <div class="card">
     <div class="card-body">
+        <form method="GET" class="row g-2 mb-3">
+            <div class="col-md">
+                <input type="search" name="busca" class="form-control" placeholder="Nome, CPF, telefone ou especialidade" value="{{ busca }}" aria-label="Buscar mecânicos">
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select" aria-label="Filtrar por status">
+                    <option value="">Todos os status</option>
+                    <option value="ativo" {% if status == 'ativo' %}selected{% endif %}>Ativo</option>
+                    <option value="inativo" {% if status == 'inativo' %}selected{% endif %}>Inativo</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-secondary">Filtrar</button>
+            </div>
+            {% if busca or status %}
+            <div class="col-auto">
+                <a href="{{ url_for('mecanicos.lista') }}" class="btn btn-outline-secondary">Limpar</a>
+            </div>
+            {% endif %}
+        </form>
+
         {% if mecanicos %}
         <div class="table-responsive">
             <table class="table table-hover">

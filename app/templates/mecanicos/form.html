@@ -12,22 +12,26 @@
             <div class="mb-3">
                 {{ form.nome.label(class="form-label") }}
                 {{ form.nome(class="form-control") }}
+                {% for error in form.nome.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
             </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
                     {{ form.cpf.label(class="form-label") }}
-                    {{ form.cpf(class="form-control", placeholder="000.000.000-00") }}
+                    {{ form.cpf(class="form-control", placeholder="000.000.000-00", maxlength="14", inputmode="numeric", data_mask="cpf") }}
+                    {% for error in form.cpf.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
                 <div class="col-md-6 mb-3">
                     {{ form.telefone.label(class="form-label") }}
-                    {{ form.telefone(class="form-control") }}
+                    {{ form.telefone(class="form-control", placeholder="(11) 99999-9999", maxlength="20", inputmode="tel", data_mask="phone") }}
+                    {% for error in form.telefone.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
             </div>
 
             <div class="mb-3">
                 {{ form.especialidade.label(class="form-label") }}
                 {{ form.especialidade(class="form-control", placeholder="Ex: Motor, Suspensão, Freios...") }}
+                {% for error in form.especialidade.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
             </div>
 
             <div class="mb-3 form-check">

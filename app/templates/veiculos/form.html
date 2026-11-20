@@ -10,14 +10,18 @@
             {{ form.hidden_tag() }}
 
             <div class="mb-3">
+                <label for="cliente-busca" class="form-label">Localizar cliente</label>
+                <input type="search" id="cliente-busca" class="form-control mb-2" placeholder="Digite o nome do cliente" data-filter-select="cliente_id" autocomplete="off">
                 {{ form.cliente_id.label(class="form-label") }}
                 {{ form.cliente_id(class="form-select") }}
+                {% for error in form.cliente_id.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
             </div>
 
             <div class="row">
                 <div class="col-md-4 mb-3">
                     {{ form.placa.label(class="form-label") }}
-                    {{ form.placa(class="form-control", placeholder="ABC1D23") }}
+                    {{ form.placa(class="form-control", placeholder="ABC1D23", maxlength="8", data_mask="plate", autocapitalize="characters") }}
+                    {% for error in form.placa.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
                 <div class="col-md-4 mb-3">
                     {{ form.marca.label(class="form-label") }}
@@ -33,10 +37,12 @@
                 <div class="col-md-6 mb-3">
                     {{ form.ano.label(class="form-label") }}
                     {{ form.ano(class="form-control", placeholder="2024") }}
+                    {% for error in form.ano.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
                 <div class="col-md-6 mb-3">
                     {{ form.quilometragem.label(class="form-label") }}
                     {{ form.quilometragem(class="form-control") }}
+                    {% for error in form.quilometragem.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
             </div>
 

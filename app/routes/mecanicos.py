@@ -1,14 +1,35 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from app.extensions import db
 from app.models import Mecanico
 from app.forms import MecanicoForm
+from sqlalchemy import or_
 
 mecanicos_bp = Blueprint('mecanicos', __name__)
 
 @mecanicos_bp.route('/')
 def lista():
-    mecanicos = Mecanico.query.order_by(Mecanico.nome).all()
-    return render_template('mecanicos/lista.html', mecanicos=mecanicos)
+    busca = request.args.get('busca', '').strip()[:100]
+    status = request.args.get('status', '')
+    query = Mecanico.query
+    if busca:
+        termo = f'%{busca}%'
+        query = query.filter(or_(
+            Mecanico.nome.ilike(termo),
+            Mecanico.cpf.ilike(termo),
+            Mecanico.telefone.ilike(termo),
+            Mecanico.especialidade.ilike(termo),
+        ))
+    if status == 'ativo':
+        query = query.filter(Mecanico.ativo.is_(True))
+    elif status == 'inativo':
+        query = query.filter(Mecanico.ativo.is_(False))
+    mecanicos = query.order_by(Mecanico.nome).all()
+    return render_template(
+        'mecanicos/lista.html',
+        mecanicos=mecanicos,
+        busca=busca,
+        status=status,
+    )
 
 @mecanicos_bp.route('/novo', methods=['GET', 'POST'])
 def novo():

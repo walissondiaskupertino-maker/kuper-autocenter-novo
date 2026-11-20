@@ -12,33 +12,39 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     {{ form.codigo.label(class="form-label") }}
-                    {{ form.codigo(class="form-control", placeholder="P001") }}
+                    {{ form.codigo(class="form-control", placeholder="P001", data_uppercase="true") }}
+                    {% for error in form.codigo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
                 <div class="col-md-6 mb-3">
                     {{ form.descricao.label(class="form-label") }}
                     {{ form.descricao(class="form-control") }}
+                    {% for error in form.descricao.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
             </div>
 
             <div class="row">
                 <div class="col-md-4 mb-3">
                     {{ form.preco_custo.label(class="form-label") }}
-                    {{ form.preco_custo(class="form-control", step="0.01") }}
+                    {{ form.preco_custo(class="form-control", step="0.01", min="0", inputmode="decimal", placeholder="0,00", data_decimal="true") }}
+                    {% for error in form.preco_custo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
                 <div class="col-md-4 mb-3">
                     {{ form.preco_venda.label(class="form-label") }}
-                    {{ form.preco_venda(class="form-control", step="0.01") }}
+                    {{ form.preco_venda(class="form-control", step="0.01", min="0", inputmode="decimal", placeholder="0,00", data_decimal="true") }}
+                    {% for error in form.preco_venda.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
                 <div class="col-md-4 mb-3">
                     {{ form.estoque_atual.label(class="form-label") }}
-                    {{ form.estoque_atual(class="form-control") }}
+                    {{ form.estoque_atual(class="form-control", min="0", inputmode="numeric") }}
+                    {% for error in form.estoque_atual.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
             </div>
 
             <div class="mb-3">
                 {{ form.estoque_minimo.label(class="form-label") }}
-                {{ form.estoque_minimo(class="form-control") }}
+                {{ form.estoque_minimo(class="form-control", min="0", inputmode="numeric") }}
                 <small class="text-muted">Alerta quando o estoque atingir este valor</small>
+                {% for error in form.estoque_minimo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
             </div>
 
             <div class="d-flex gap-2">

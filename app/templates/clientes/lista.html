@@ -9,35 +9,46 @@
 
 <div class="card">
     <div class="card-body">
-        <form method="GET" class="d-flex mb-3">
-            <input type="text" name="busca" class="form-control me-2" placeholder="Buscar..." value="{{ busca }}">
-            <button type="submit" class="btn btn-outline-secondary">Buscar</button>
+        <form method="GET" class="row g-2 mb-3">
+            <div class="col-md">
+                <input type="search" name="busca" class="form-control" placeholder="Nome, documento, telefone ou e-mail" value="{{ busca }}" aria-label="Buscar clientes">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-secondary">Filtrar</button>
+            </div>
+            {% if busca %}
+            <div class="col-auto">
+                <a href="{{ url_for('clientes.lista') }}" class="btn btn-outline-secondary">Limpar</a>
+            </div>
+            {% endif %}
         </form>
 
         {% if clientes %}
-        <table class="table table-hover">
-            <thead>
-                <tr><th>ID</th><th>Nome</th><th>CPF/CNPJ</th><th>Telefone</th><th>E-mail</th><th>Ações</th></tr>
-            </thead>
-            <tbody>
-                {% for c in clientes %}
-                <tr>
-                    <td>{{ c.id }}</td>
-                    <td>{{ c.nome }}</td>
-                    <td>{{ c.cpf_cnpj or '-' }}</td>
-                    <td>{{ c.telefone or '-' }}</td>
-                    <td>{{ c.email or '-' }}</td>
-                    <td>
-                        <a href="{{ url_for('clientes.editar', id=c.id) }}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
-                        <form method="POST" action="{{ url_for('clientes.excluir', id=c.id) }}" style="display:inline" onsubmit="return confirm('Tem certeza?')">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr><th>ID</th><th>Nome</th><th>CPF/CNPJ</th><th>Telefone</th><th>E-mail</th><th>Ações</th></tr>
+                </thead>
+                <tbody>
+                    {% for c in clientes %}
+                    <tr>
+                        <td>{{ c.id }}</td>
+                        <td>{{ c.nome }}</td>
+                        <td>{{ c.cpf_cnpj or '-' }}</td>
+                        <td>{{ c.telefone or '-' }}</td>
+                        <td>{{ c.email or '-' }}</td>
+                        <td>
+                            <a href="{{ url_for('clientes.editar', id=c.id) }}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
+                            <form method="POST" action="{{ url_for('clientes.excluir', id=c.id) }}" style="display:inline" onsubmit="return confirm('Tem certeza?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
             <p class="text-muted text-center">Nenhum cliente encontrado.</p>
         {% endif %}

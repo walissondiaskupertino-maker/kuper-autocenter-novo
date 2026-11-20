@@ -136,6 +136,9 @@ Padrões de interface:
 - Use a classe `page-actions` para grupos de botões.
 - Use `data-confirm="mensagem"` em ações destrutivas ou de saída.
 - Mantenha tabelas dentro de `.table-responsive`.
+- Os cadastros de clientes, veículos, mecânicos, peças e serviços oferecem busca
+  e filtros nas listagens; os campos de documento, telefone, placa e valores
+  também normalizam a entrada e validam os dados no servidor.
 
 ## Segurança
 
